@@ -71,4 +71,23 @@ mod tests {
         let garbage = base64::engine::general_purpose::STANDARD.encode([0xff, 0x00, 0x12]);
         assert!(decompress(&garbage).is_err());
     }
+
+    #[test]
+    fn checked_in_replay_compressed_topics_decode() {
+        let first = include_str!("../../../simulator/fixtures/sample.jsonl")
+            .lines()
+            .next()
+            .unwrap();
+        let frame: Value = serde_json::from_str(first).unwrap();
+        let initial = frame["R"].as_object().unwrap();
+
+        let car_data = decompress(initial["CarData.z"].as_str().unwrap()).unwrap();
+        assert_eq!(
+            car_data["Entries"][0]["Cars"]["44"]["Channels"]["2"],
+            json!(280)
+        );
+
+        let position = decompress(initial["Position.z"].as_str().unwrap()).unwrap();
+        assert_eq!(position["Position"][0]["Entries"]["16"]["X"], json!(980));
+    }
 }

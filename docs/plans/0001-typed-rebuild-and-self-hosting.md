@@ -4,8 +4,7 @@
 > into `muretto-merge` (trait) + `merge-derive` (proc-macro) rather than a single sub-crate;
 > ts-rs output is routed via `TS_RS_EXPORT_DIR` (in `.cargo/config.toml`) instead of per-type
 > `export_to`; telemetry channels stay numeric on the wire with the dashboard naming them via a
-> helper (rather than a serde serialize-rename); and the **SVG track map / weather panels are
-> not yet built** (they need real `Position` data + an external circuit-geometry API).
+> helper (rather than a serde serialize-rename).
 
 # muretto — a typed, self-hostable F1 live-timing dashboard
 

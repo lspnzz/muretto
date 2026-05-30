@@ -3,8 +3,9 @@
 //! project's untyped merge (deep partials leaving siblings intact, arrays-as-
 //! objects, keyed add/update/remove, array-or-object initial shapes).
 
+use realtime::ingest::decompress;
 use realtime::model::State;
-use serde_json::json;
+use serde_json::{Value, json};
 
 /// Load an INITIAL snapshot as the feed delivers it: `{ "<Topic>": <data> }`.
 fn initial(state: &mut State, topic: &str, data: serde_json::Value) {
@@ -118,4 +119,58 @@ fn loose_topic_deep_merges() {
     let ts = s.timing_stats.as_ref().unwrap();
     assert_eq!(ts["Lines"]["44"]["Best"], json!(2));
     assert_eq!(ts["SessionType"], json!("Race")); // sibling preserved
+}
+
+#[test]
+fn replay_fixture_initial_then_partial_sequence() {
+    let fixture = include_str!("../../simulator/fixtures/sample.jsonl");
+    let mut lines = fixture.lines().filter(|line| !line.trim().is_empty());
+    let mut s = State::default();
+
+    let initial_frame: Value = serde_json::from_str(lines.next().unwrap()).unwrap();
+    for (topic, data) in initial_frame["R"].as_object().unwrap() {
+        apply_decoded(&mut s, topic, data.clone());
+    }
+
+    for line in lines {
+        let frame: Value = serde_json::from_str(line).unwrap();
+        let messages = frame["M"].as_array().unwrap();
+        for message in messages {
+            let args = message["A"].as_array().unwrap();
+            let topic = args[0].as_str().unwrap();
+            apply_decoded(&mut s, topic, args[1].clone());
+        }
+    }
+
+    let drivers = s.driver_list.as_ref().unwrap();
+    assert_eq!(drivers["44"].tla, "HAM");
+    assert_eq!(drivers["16"].team_name, "Ferrari");
+
+    let timing = s.timing_data.as_ref().unwrap();
+    assert_eq!(timing.lines["44"].position, "1");
+    assert_eq!(timing.lines["16"].gap_to_leader, "+1.234");
+
+    let weather = s.weather_data.as_ref().unwrap();
+    assert_eq!(weather.track_temp, "31.8");
+    assert_eq!(weather.rainfall, "0");
+
+    let position = s.position.as_ref().unwrap().position.last().unwrap();
+    assert_eq!(position.entries["44"].x, 1400.0);
+    assert_eq!(position.entries["16"].y, 730.0);
+
+    let car_data = s.car_data.as_ref().unwrap();
+    assert_eq!(car_data.entries[0].cars["44"].channels.speed, 295);
+
+    let messages = &s.race_control_messages.as_ref().unwrap().messages;
+    assert_eq!(messages["0"].message, "GREEN LIGHT");
+}
+
+fn apply_decoded(state: &mut State, topic: &str, data: Value) {
+    let canonical = decompress::canonical_topic(topic);
+    let decoded = if decompress::is_compressed(topic) {
+        decompress::decompress(data.as_str().unwrap()).unwrap()
+    } else {
+        data
+    };
+    state.apply(canonical, decoded);
 }

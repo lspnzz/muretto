@@ -22,6 +22,8 @@ F1 SignalR feed ──► realtime (Rust)                       ──► dashbo
 - **dashboard** (Next.js): consumes the SSE stream, buffers it with a tunable replay delay,
   renders the leaderboard / track map / telemetry. Imports TypeScript types **generated from
   the Rust model** — change a struct and the frontend types regenerate (CI fails on drift).
+  The track map uses MultiViewer's public circuit geometry API and overlays live `Position`
+  coordinates from the F1 feed.
 - **simulator**: records a live session and replays it over WebSocket, so you can develop
   any day of the week with no live race.
 
@@ -102,4 +104,4 @@ No database and no paid data feed, so the cost is just compute + bandwidth:
 ## CI
 
 `cargo fmt`/`clippy`/`test`, a **bindings-drift gate** (`git diff` on the generated types after
-tests), and a Docker build. Frontend lint/test/build runs once the dashboard lands.
+tests), frontend lint/typecheck/test/build, and Docker builds for both images.
