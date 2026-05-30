@@ -1,0 +1,13 @@
+.git
+target
+**/target
+node_modules
+**/node_modules
+dashboard/.next
+dashboard/out
+*.data.*
+.env
+.env.*
+compose.env
+.github
+*.md

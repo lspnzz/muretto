@@ -1,0 +1,16 @@
+# Single-VM reverse proxy with automatic HTTPS.
+# Dashboard on the apex domain, realtime API on rt.<domain>.
+# Set DOMAIN and EMAIL in the environment (see compose.yaml `tls` profile).
+
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+rt.{$DOMAIN} {
+	encode zstd gzip
+	# SSE must not be buffered; flush immediately.
+	reverse_proxy realtime:80 {
+		flush_interval -1
+	}
+}

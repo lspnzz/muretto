@@ -1,0 +1,68 @@
+# Local + self-host stack. Plain images, no platform APIs — the same compose
+# runs on a laptop, a $5 VM, or anywhere docker runs. Railway builds the same
+# Dockerfiles directly.
+#
+#   docker compose up                 # realtime + dashboard (needs a live session)
+#   docker compose --profile dev up   # + replay simulator, no live race needed
+#   docker compose --profile tls up   # + Caddy auto-TLS in front (set DOMAIN/EMAIL)
+
+services:
+  realtime:
+    build:
+      context: .
+      dockerfile: realtime/Dockerfile
+    environment:
+      - ADDRESS=0.0.0.0:80
+      - ORIGIN=${ORIGIN:-http://localhost:3000}
+      - RUST_LOG=${RUST_LOG:-realtime=info}
+      # In the dev profile, ingest the replay instead of the live feed.
+      - F1_DEV_URL=${F1_DEV_URL:-}
+    ports:
+      - "4000:80"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./dashboard
+    depends_on:
+      - realtime
+    environment:
+      - NEXT_PUBLIC_LIVE_URL=${NEXT_PUBLIC_LIVE_URL:-http://localhost:4000}
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  # Offline development: replays a recorded session over ws://replay:8000/ws.
+  # Run with `--profile dev` and set F1_DEV_URL=ws://replay:8000/ws.
+  replay:
+    build:
+      context: .
+      dockerfile: simulator/Dockerfile
+    command: ["replay", "/fixtures/sample.jsonl"]
+    volumes:
+      - ./simulator/fixtures:/fixtures:ro
+    profiles: ["dev"]
+    restart: unless-stopped
+
+  # Production reverse proxy with automatic HTTPS for a single-VM deploy.
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - web
+      - realtime
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+      - EMAIL=${EMAIL:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    profiles: ["tls"]
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
