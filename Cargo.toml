@@ -1,0 +1,52 @@
+[workspace]
+members = ["realtime", "merge-derive", "muretto-merge", "simulator"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/lspnzz/muretto"
+
+[workspace.dependencies]
+merge-derive = { path = "merge-derive" }
+muretto-merge = { path = "muretto-merge" }
+
+# serialization / data model
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+indexmap = { version = "2", features = ["serde"] }
+ts-rs = { version = "10", features = ["indexmap-impl", "serde-json-impl", "no-serde-warnings"] }
+
+# async runtime / web
+tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7"
+tokio-stream = { version = "0.1", features = ["sync"] }
+axum = "0.8"
+tower-http = { version = "0.6", features = ["cors"] }
+futures = "0.3"
+async-stream = "0.3"
+
+# networking (signalr client)
+tokio-tungstenite = { version = "0.26", features = ["rustls-tls-webpki-roots"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+
+# decompression / encoding
+flate2 = "1"
+base64 = "0.22"
+uuid = { version = "1", features = ["v4"] }
+
+# observability / errors
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"
+thiserror = "2"
+
+# proc-macro deps
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "2", features = ["full"] }
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1

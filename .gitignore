@@ -1,0 +1,26 @@
+# Rust
+/target
+**/*.rs.bk
+
+# Node / Next.js
+node_modules/
+dashboard/.next/
+dashboard/out/
+dashboard/.turbo/
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+compose.env
+
+# Recorded F1 sessions (replay fixtures are opt-in, kept under tests/fixtures)
+*.data.*
+
+# Local Claude Code dev config (personal, not shared)
+.claude/settings.local.json
+.claude/launch.json
+
+# OS
+.DS_Store

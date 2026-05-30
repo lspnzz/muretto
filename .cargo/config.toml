@@ -1,0 +1,5 @@
+# ts-rs writes the generated TypeScript bindings here. `relative = true` resolves
+# the path against this config file's directory (the workspace root), so the
+# bindings land in the dashboard regardless of which crate triggers the export.
+[env]
+TS_RS_EXPORT_DIR = { value = "dashboard/src/types", relative = true }
