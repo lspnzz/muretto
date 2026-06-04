@@ -1,19 +1,16 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+import { TRACK_STATUS_COLOR } from "@/lib/trackStatus";
 import { useDataStore } from "@/stores/useDataStore";
 import { DelayControl } from "./DelayControl";
-
-const TRACK_STATUS_COLOR: Record<string, string> = {
-  "1": "bg-green-500", // all clear
-  "2": "bg-yellow-500", // yellow
-  "4": "bg-yellow-500", // safety car
-  "5": "bg-red-500", // red flag
-  "6": "bg-yellow-500", // VSC
-};
 
 export function Header() {
   const state = useDataStore((s) => s.state);
   const connected = useDataStore((s) => s.connected);
+  const pathname = usePathname();
 
   const session = state.SessionInfo;
   const lap = state.LapCount;
@@ -26,6 +23,15 @@ export function Header() {
         <span className={`inline-block h-3 w-3 rounded-full ${statusColor}`} aria-hidden />
         <span className="text-lg font-semibold">muretto</span>
       </div>
+
+      <nav className="hidden items-center gap-3 text-sm sm:flex" aria-label="Dashboard views">
+        <Link className={navLinkClass(pathname === "/")} href="/">
+          Live
+        </Link>
+        <Link className={navLinkClass(pathname === "/strategy")} href="/strategy">
+          Strategy
+        </Link>
+      </nav>
 
       {session?.Meeting?.Name && (
         <div className="text-sm text-zinc-300">
@@ -52,4 +58,11 @@ export function Header() {
       </div>
     </header>
   );
+}
+
+function navLinkClass(active: boolean) {
+  return [
+    "underline-offset-4 transition-colors hover:text-zinc-100",
+    active ? "text-zinc-100 underline decoration-zinc-500" : "text-zinc-500",
+  ].join(" ");
 }

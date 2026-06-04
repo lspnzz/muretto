@@ -1,15 +1,8 @@
 "use client";
 
 import { type DriverRow as Row, currentTyre, telemetry } from "@/lib/selectors";
+import { TYRE_COLOR } from "@/lib/tyre";
 import type { State } from "@/types";
-
-const TYRE_COLOR: Record<string, string> = {
-  SOFT: "text-red-500",
-  MEDIUM: "text-yellow-400",
-  HARD: "text-zinc-200",
-  INTERMEDIATE: "text-green-500",
-  WET: "text-blue-500",
-};
 
 export function DriverRow({ row, state }: { row: Row; state: State }) {
   const { driver, timing, racingNumber } = row;

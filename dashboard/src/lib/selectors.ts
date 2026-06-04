@@ -1,7 +1,7 @@
 // Derive view-model rows from the typed state. Keeps PascalCase field access in
 // one place so components stay tidy.
 
-import type { CarChannels, Driver, State, TimingDataDriver } from "@/types";
+import type { CarChannels, Driver, State, Stint, TimingDataDriver } from "@/types";
 
 export type DriverRow = {
   racingNumber: string;
@@ -36,9 +36,25 @@ export function telemetry(state: State, racingNumber: string): CarChannels | und
 
 /** Current tyre compound for a car (last stint), if known. */
 export function currentTyre(state: State, racingNumber: string): string | undefined {
+  return currentStint(state, racingNumber)?.Compound || undefined;
+}
+
+/** Current stint for a car (last stint), if known. */
+export function currentStint(state: State, racingNumber: string): Stint | undefined {
   const stints = state.TimingAppData?.Lines?.[racingNumber]?.Stints;
   if (!stints) return undefined;
   const keys = Object.keys(stints);
   const last = keys[keys.length - 1];
-  return (last && stints[last]?.Compound) || undefined;
+  return (last && stints[last]) || undefined;
+}
+
+/** Current stint lap count for a car, if known. */
+export function stintLaps(state: State, racingNumber: string): number | undefined {
+  return currentStint(state, racingNumber)?.TotalLaps ?? undefined;
+}
+
+/** Best-effort stop count derived from stint count; the feed does not expose it directly. */
+export function pitCount(state: State, racingNumber: string): number {
+  const stints = state.TimingAppData?.Lines?.[racingNumber]?.Stints;
+  return Math.max(0, Object.keys(stints ?? {}).length - 1);
 }

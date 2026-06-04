@@ -3,13 +3,14 @@
 import { orderedDrivers } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import { DriverRow } from "./DriverRow";
+import { UpcomingRaceTimings } from "./UpcomingRacePlaceholder";
 
 export function LeaderBoard() {
   const state = useDataStore((s) => s.state);
   const rows = orderedDrivers(state);
 
   if (rows.length === 0) {
-    return <div className="p-6 text-sm text-zinc-500">Waiting for timing data…</div>;
+    return <UpcomingRaceTimings />;
   }
 
   return (

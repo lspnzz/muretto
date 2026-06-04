@@ -1,6 +1,7 @@
 "use client";
 
 import { useDataStore } from "@/stores/useDataStore";
+import { UpcomingRaceInline } from "./UpcomingRacePlaceholder";
 
 type WeatherItem = {
   label: string;
@@ -15,7 +16,7 @@ export function WeatherPanel() {
     return (
       <section className="border-b border-zinc-800 px-3 py-3">
         <h2 className="mb-2 text-xs uppercase tracking-wide text-zinc-500">Weather</h2>
-        <div className="text-sm text-zinc-600">No weather data.</div>
+        <UpcomingRaceInline label="No weather data." />
       </section>
     );
   }
