@@ -16,7 +16,7 @@ export function UpcomingRacePanel({ compact = false }: RacePlaceholderProps) {
   return (
     <section
       className={[
-        "flex h-full min-h-[18rem] flex-col justify-center px-4 text-zinc-300",
+        "flex h-full min-h-[18rem] flex-col justify-start px-4 text-zinc-300",
         compact ? "py-4" : "py-8",
       ].join(" ")}
     >
@@ -80,7 +80,7 @@ function PlaceholderShell({ compact = false }: RacePlaceholderProps) {
   return (
     <section
       className={[
-        "flex h-full min-h-[18rem] flex-col justify-center px-4",
+        "flex h-full min-h-[18rem] flex-col justify-start px-4",
         compact ? "py-4" : "py-8",
       ].join(" ")}
     >
