@@ -76,31 +76,6 @@ export function UpcomingRaceTimings() {
   );
 }
 
-export function UpcomingRaceInline({ label }: { label: string }) {
-  const { race, loading } = useUpcomingRace();
-
-  if (loading) {
-    return (
-      <div className="space-y-2">
-        <div className="h-3 w-24 rounded-sm bg-zinc-900" />
-        <div className="h-4 w-44 rounded-sm bg-zinc-900" />
-      </div>
-    );
-  }
-
-  if (!race) return <div className="text-sm text-zinc-600">{label}</div>;
-
-  return (
-    <div className="space-y-1 text-sm">
-      <div className="font-medium text-zinc-300">{race.raceName}</div>
-      <div className="text-zinc-600">{race.circuitName}</div>
-      <div className="font-mono text-xs tabular-nums text-zinc-600">
-        {formatDateTime(race.raceIso)}
-      </div>
-    </div>
-  );
-}
-
 function PlaceholderShell({ compact = false }: RacePlaceholderProps) {
   return (
     <section

@@ -8,7 +8,7 @@ export function DelayControl() {
   const setDelayMs = useDataStore((s) => s.setDelayMs);
 
   return (
-    <label className="flex items-center gap-2 text-sm text-zinc-400">
+    <label className="grid w-full grid-cols-[1fr_auto] items-center gap-x-2 gap-y-1 text-sm text-zinc-400 sm:flex sm:w-auto">
       <span>delay</span>
       <input
         type="range"
@@ -17,9 +17,11 @@ export function DelayControl() {
         step={500}
         value={delayMs}
         onChange={(e) => setDelayMs(Number(e.target.value))}
-        className="accent-zinc-300"
+        className="order-last col-span-2 w-full min-w-0 accent-zinc-300 sm:order-none sm:col-span-1 sm:w-40"
       />
-      <span className="w-10 tabular-nums text-zinc-300">{(delayMs / 1000).toFixed(1)}s</span>
+      <span className="w-10 justify-self-end tabular-nums text-zinc-300">
+        {(delayMs / 1000).toFixed(1)}s
+      </span>
     </label>
   );
 }

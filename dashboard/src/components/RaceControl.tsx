@@ -2,7 +2,6 @@
 
 import { useDataStore } from "@/stores/useDataStore";
 import type { Message } from "@/types";
-import { UpcomingRaceInline } from "./UpcomingRacePlaceholder";
 
 export function RaceControl() {
   const messages = useDataStore((s) => s.state.RaceControlMessages?.Messages);
@@ -18,7 +17,7 @@ export function RaceControl() {
       </h2>
       {recent.length === 0 ? (
         <div className="px-3 py-2">
-          <UpcomingRaceInline label="No messages yet." />
+          <div className="text-sm text-zinc-600">No race-control messages.</div>
         </div>
       ) : (
         <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-3 pt-2">

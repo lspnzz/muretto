@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { orderedDrivers } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import type { PositionCar, State } from "@/types";
-import { UpcomingRaceInline } from "./UpcomingRacePlaceholder";
 
 type CircuitGeometry = {
   circuitName?: string;
@@ -138,7 +137,7 @@ export function TrackMap() {
           {loading ? (
             <div className="text-sm text-zinc-600">Loading circuit map.</div>
           ) : (
-            <UpcomingRaceInline label="No circuit map." />
+            <div className="text-sm text-zinc-600">No circuit map.</div>
           )}
         </div>
       )}
