@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -67,10 +68,61 @@ export function Header() {
         </div>
       )}
 
-      <div className="order-last w-full sm:order-none sm:w-auto">
-        <DelayControl />
-      </div>
+      <SettingsMenu />
     </header>
+  );
+}
+
+function SettingsMenu() {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function closeOnOutsidePointer(event: PointerEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        type="button"
+        aria-controls="header-settings-menu"
+        aria-expanded={open}
+        aria-label={open ? "Close settings" : "Open settings"}
+        className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-800 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-100"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="flex h-4 w-4 flex-col justify-between" aria-hidden>
+          <span className="h-0.5 rounded-full bg-current" />
+          <span className="h-0.5 rounded-full bg-current" />
+          <span className="h-0.5 rounded-full bg-current" />
+        </span>
+      </button>
+
+      {open && (
+        <div
+          id="header-settings-menu"
+          className="absolute right-0 top-11 z-50 w-[calc(100vw-2rem)] max-w-sm rounded-md border border-zinc-800 bg-zinc-950 p-3 shadow-xl shadow-black/40 sm:w-80"
+        >
+          <DelayControl />
+        </div>
+      )}
+    </div>
   );
 }
 
