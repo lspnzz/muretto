@@ -26,12 +26,7 @@ export function WeatherPanel() {
   }
 
   if (raceWeather.weather) {
-    return (
-      <WeatherSection
-        meta={raceWeather.weather.source === "forecast" ? "race forecast" : "current"}
-        items={raceItems(raceWeather.weather)}
-      />
-    );
+    return <WeatherSection items={raceItems(raceWeather.weather)} />;
   }
 
   if (raceWeather.loading) {
@@ -51,12 +46,12 @@ export function WeatherPanel() {
   );
 }
 
-function WeatherSection({ meta, items }: { meta: string; items: WeatherItem[] }) {
+function WeatherSection({ meta, items }: { meta?: string; items: WeatherItem[] }) {
   return (
     <section className="border-b border-zinc-800 px-3 py-3">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-xs uppercase tracking-wide text-zinc-500">Weather</h2>
-        <span className="font-mono text-xs text-zinc-600">{meta}</span>
+        {meta ? <span className="font-mono text-xs text-zinc-600">{meta}</span> : null}
       </div>
       <dl className="grid grid-cols-3 gap-x-3 gap-y-2">
         {items.map((item) => (
