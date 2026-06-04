@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { useUpcomingRace } from "@/hooks/useUpcomingRace";
 import { orderedDrivers } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import type { PositionCar, State } from "@/types";
+import type { UpcomingRace } from "@/types/UpcomingRace";
 
 type CircuitGeometry = {
   circuitName?: string;
@@ -39,8 +41,9 @@ const PAD = 6;
 
 export function TrackMap() {
   const state = useDataStore((s) => s.state);
+  const { race } = useUpcomingRace();
   const latest = state.Position?.Position.at(-1);
-  const { circuitKey, year } = useMemo(() => circuitRef(state), [state]);
+  const { circuitKey, year } = useMemo(() => circuitRef(state, race), [state, race]);
   const [geometry, setGeometry] = useState<CircuitGeometry | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -86,7 +89,9 @@ export function TrackMap() {
       <div className="flex items-center justify-between px-3 py-2">
         <h2 className="text-xs uppercase tracking-wide text-zinc-500">Track</h2>
         <span className="font-mono text-xs text-zinc-600">
-          {latest?.Timestamp ? latest.Timestamp.slice(11, 19) : geometry?.circuitName || ""}
+          {latest?.Timestamp
+            ? latest.Timestamp.slice(11, 19)
+            : geometry?.circuitName || race?.circuitName || ""}
         </span>
       </div>
 
@@ -145,11 +150,15 @@ export function TrackMap() {
   );
 }
 
-function circuitRef(state: State) {
+function circuitRef(state: State, race: UpcomingRace | undefined) {
   const session = state.SessionInfo;
   const circuitKey = session?.Meeting?.Circuit?.Key || 0;
   const year = parseYear(session?.StartDate);
-  return { circuitKey, year };
+  if (circuitKey && year) return { circuitKey, year };
+
+  const raceCircuitKey = race?.circuitKey ?? 0;
+  const raceYear = parseYear(race?.season) || parseYear(race?.raceIso);
+  return { circuitKey: raceCircuitKey, year: raceYear };
 }
 
 function parseYear(value: string | undefined) {

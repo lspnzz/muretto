@@ -25,4 +25,5 @@ export type { SessionInfo } from "./SessionInfo";
 export type { LapCount } from "./LapCount";
 export type { TrackStatus } from "./TrackStatus";
 export type { WeatherData } from "./WeatherData";
+export type { RaceWeather } from "./RaceWeather";
 export type { ExtrapolatedClock } from "./ExtrapolatedClock";

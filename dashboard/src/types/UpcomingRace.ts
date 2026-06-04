@@ -9,6 +9,7 @@ export type UpcomingRace = {
   raceName: string;
   raceUrl?: string;
   circuitId: string;
+  circuitKey?: number;
   circuitName: string;
   locality: string;
   country: string;
