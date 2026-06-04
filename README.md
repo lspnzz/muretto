@@ -69,17 +69,27 @@ Against the live feed, drop `F1_DEV_URL` (only works during a session weekend).
 
 ### Config (env)
 
-`ADDRESS` (default `0.0.0.0:80`), `ORIGIN` (`;`-separated CORS origins), `RUST_LOG`,
-`F1_DEV_URL` (replay endpoint), and on the dashboard `NEXT_PUBLIC_LIVE_URL`.
+`ADDRESS` (full bind address override), `PORT` (binds `0.0.0.0:$PORT` when `ADDRESS` is
+unset; default port 80), `ORIGIN` (`;`-separated CORS origins), `RUST_LOG`, `F1_DEV_URL`
+(replay endpoint), and on the dashboard `NEXT_PUBLIC_LIVE_URL`.
 
 ## Deploy
 
 Everything is a plain Docker image with **no platform-specific APIs**, so the same artifacts
 run on Railway, a VM, Render, Fly, or Cloud Run.
 
-- **Railway (first target):** point it at this repo; it builds `realtime/Dockerfile` and
-  `dashboard/Dockerfile`. The realtime service must be a **single always-on instance** (it holds
-  the feed connection and in-memory state — do **not** scale it to multiple replicas).
+- **Railway (first target):** create two services from this repo.
+  - `realtime`: keep the service root at `/` and use the root `railway.toml`. It selects
+    `realtime/Dockerfile`, watches only the Rust/shared backend paths, and healthchecks
+    `/api/health`.
+  - `dashboard`: set the service root directory to `/dashboard` and set the config path to
+    `/dashboard/railway.toml`. It uses `dashboard/Dockerfile`, watches `/dashboard/**`, and
+    healthchecks `/`.
+  - Generate a public domain for `realtime`, then set `NEXT_PUBLIC_LIVE_URL` on the dashboard to
+    that HTTPS URL before deploying the dashboard. Set `ORIGIN` on `realtime` to the dashboard
+    HTTPS URL if you want strict CORS.
+  - The realtime service must be a **single always-on instance** (it holds the feed connection and
+    in-memory state — do **not** scale it to multiple replicas).
 - **Any VM:** `docker compose --profile tls up -d` with `DOMAIN`/`EMAIL` set — Caddy fetches
   TLS automatically and reverse-proxies the dashboard and the SSE API.
 

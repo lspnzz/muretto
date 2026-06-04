@@ -1,0 +1,18 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "realtime/Dockerfile"
+watchPatterns = [
+  "/.cargo/**",
+  "/.dockerignore",
+  "/Cargo.lock",
+  "/Cargo.toml",
+  "/merge-derive/**",
+  "/muretto-merge/**",
+  "/railway.toml",
+  "/realtime/**",
+]
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "ALWAYS"

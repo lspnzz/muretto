@@ -12,6 +12,6 @@ FROM alpine:3 AS runtime
 RUN adduser -D -u 10001 app
 COPY --from=builder /app/target/release/realtime /usr/local/bin/realtime
 USER app
-ENV ADDRESS=0.0.0.0:80 RUST_LOG=realtime=info
+ENV RUST_LOG=realtime=info
 EXPOSE 80
 ENTRYPOINT ["realtime"]

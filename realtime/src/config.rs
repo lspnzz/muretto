@@ -27,9 +27,14 @@ pub const TOPICS: &[&str] = &[
     "ChampionshipPrediction",
 ];
 
-/// Address the HTTP/SSE server binds to (`ADDRESS`, default `0.0.0.0:80`).
+/// Address the HTTP/SSE server binds to.
+///
+/// `ADDRESS` is the full override. Otherwise use Railway-style `PORT`, then
+/// fall back to port 80 for Docker/compose defaults.
 pub fn address() -> String {
-    std::env::var("ADDRESS").unwrap_or_else(|_| "0.0.0.0:80".to_string())
+    std::env::var("ADDRESS")
+        .or_else(|_| std::env::var("PORT").map(|port| format!("0.0.0.0:{port}")))
+        .unwrap_or_else(|_| "0.0.0.0:80".to_string())
 }
 
 /// Allowed CORS origins, `;`-separated (`ORIGIN`). Empty when unset.

@@ -1,0 +1,10 @@
+[build]
+builder = "DOCKERFILE"
+watchPatterns = [
+  "/dashboard/**",
+]
+
+[deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 30
+restartPolicyType = "ALWAYS"
