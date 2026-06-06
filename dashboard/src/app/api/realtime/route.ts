@@ -2,30 +2,64 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const DEFAULT_REALTIME_URL = "http://localhost:4000";
-const RAILWAY_REALTIME_HOSTS = ["realtime", "muretto-realtime"];
-const RAILWAY_REALTIME_PORTS = ["80", "8080", "4000"];
+const RAILWAY_REALTIME_HOSTS = [
+  "realtime",
+  "muretto-realtime",
+  "muretto---realtime",
+  "muretto--realtime",
+  "46bdae13-7398-441b-98c0-327f9a87c3bd",
+];
+const RAILWAY_REALTIME_PORTS = ["80", "8080", "3000", "4000", "5000", "8000"];
 const HEALTH_TIMEOUT_MS = 1_500;
+
+type ProbeResult = {
+  base: string;
+  ok: boolean;
+  status?: number;
+  error?: string;
+};
+
+function unique(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function normalizeRailwayHost(host: string, collapseDashes: boolean) {
+  const normalized = host
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-");
+
+  return (collapseDashes ? normalized.replace(/-+/g, "-") : normalized).replace(
+    /^-|-$/g,
+    "",
+  );
+}
 
 function railwayHostCandidates() {
   const serviceName = process.env.RAILWAY_SERVICE_NAME;
   const derivedName = serviceName?.replace(/dashboard/i, "realtime");
 
-  return [derivedName, ...RAILWAY_REALTIME_HOSTS]
-    .filter((host): host is string => Boolean(host))
-    .map((host) =>
-      host
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9-]+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, ""),
-    )
-    .filter(Boolean);
+  return unique(
+    [derivedName, ...RAILWAY_REALTIME_HOSTS]
+      .filter((host): host is string => Boolean(host))
+      .flatMap((host) => [
+        normalizeRailwayHost(host, true),
+        normalizeRailwayHost(host, false),
+      ]),
+  );
+}
+
+function railwayPortCandidates() {
+  return unique(
+    [process.env.REALTIME_PORT, ...RAILWAY_REALTIME_PORTS]
+      .filter((port): port is string => Boolean(port))
+      .map((port) => port.trim()),
+  );
 }
 
 function railwayBaseUrls() {
   return railwayHostCandidates().flatMap((host) =>
-    RAILWAY_REALTIME_PORTS.map(
+    railwayPortCandidates().map(
       (port) => `http://${host}.railway.internal:${port}`,
     ),
   );
@@ -38,33 +72,77 @@ function candidateBaseUrls() {
   ].filter((url): url is string => Boolean(url));
   const railway = process.env.RAILWAY_ENVIRONMENT_ID ? railwayBaseUrls() : [];
 
-  return Array.from(
-    new Set(
-      [...configured, ...railway, DEFAULT_REALTIME_URL].map((url) =>
-        url.replace(/\/+$/, ""),
-      ),
+  return unique(
+    [...configured, ...railway, DEFAULT_REALTIME_URL].map((url) =>
+      url.replace(/\/+$/, ""),
     ),
   );
 }
 
-async function firstReachableBase(requestSignal: AbortSignal) {
-  for (const base of candidateBaseUrls()) {
-    try {
-      const timeout = AbortSignal.timeout(HEALTH_TIMEOUT_MS);
-      const response = await fetch(`${base}/api/health`, {
-        cache: "no-store",
-        signal: AbortSignal.any([requestSignal, timeout]),
-      });
-      if (response.ok) return base;
-    } catch {
-      // Try the next candidate.
-    }
+function signalWithTimeout(requestSignal: AbortSignal) {
+  const timeout = AbortSignal.timeout(HEALTH_TIMEOUT_MS);
+
+  if (typeof AbortSignal.any === "function") {
+    return AbortSignal.any([requestSignal, timeout]);
   }
 
-  return null;
+  return timeout;
+}
+
+async function probeBase(
+  base: string,
+  requestSignal: AbortSignal,
+): Promise<ProbeResult> {
+  try {
+    const response = await fetch(`${base}/api/health`, {
+      cache: "no-store",
+      signal: signalWithTimeout(requestSignal),
+    });
+
+    return { base, ok: response.ok, status: response.status };
+  } catch (error) {
+    return {
+      base,
+      ok: false,
+      error: error instanceof Error ? `${error.name}: ${error.message}` : "error",
+    };
+  }
+}
+
+async function probeCandidates(requestSignal: AbortSignal) {
+  return Promise.all(
+    candidateBaseUrls().map((base) => probeBase(base, requestSignal)),
+  );
+}
+
+async function firstReachableBase(requestSignal: AbortSignal) {
+  const probes = await probeCandidates(requestSignal);
+  return probes.find((probe) => probe.ok)?.base ?? null;
+}
+
+async function diagnostics(request: Request) {
+  const probes = await probeCandidates(request.signal);
+  const status = probes.some((probe) => probe.ok) ? 200 : 502;
+
+  return Response.json(
+    {
+      railway: {
+        environment: Boolean(process.env.RAILWAY_ENVIRONMENT_ID),
+        serviceName: process.env.RAILWAY_SERVICE_NAME ?? null,
+        hasRealtimeUrl: Boolean(process.env.REALTIME_URL),
+        hasNextPublicLiveUrl: Boolean(process.env.NEXT_PUBLIC_LIVE_URL),
+      },
+      probes,
+    },
+    { status },
+  );
 }
 
 export async function GET(request: Request) {
+  if (new URL(request.url).searchParams.has("diagnostics")) {
+    return diagnostics(request);
+  }
+
   const base = await firstReachableBase(request.signal);
   if (!base) {
     return new Response("Realtime unavailable", { status: 502 });
