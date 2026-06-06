@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 
 const DEFAULT_REALTIME_URL = "http://localhost:4000";
 const RAILWAY_REALTIME_HOSTS = [
+  "muretto",
   "realtime",
   "muretto-realtime",
   "muretto---realtime",
@@ -65,11 +66,33 @@ function railwayBaseUrls() {
   );
 }
 
+function expandConfiguredUrl(url: string) {
+  const trimmed = url.replace(/\/+$/, "");
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.hostname.endsWith(".railway.internal")) {
+      return unique([
+        trimmed,
+        ...railwayPortCandidates().map(
+          (port) => `http://${parsed.hostname}:${port}`,
+        ),
+      ]);
+    }
+  } catch {
+    // Keep the original value below.
+  }
+
+  return [trimmed];
+}
+
 function candidateBaseUrls() {
   const configured = [
     process.env.REALTIME_URL,
     process.env.NEXT_PUBLIC_LIVE_URL,
-  ].filter((url): url is string => Boolean(url));
+  ]
+    .filter((url): url is string => Boolean(url))
+    .flatMap(expandConfiguredUrl);
   const railway = process.env.RAILWAY_ENVIRONMENT_ID ? railwayBaseUrls() : [];
 
   return unique(
