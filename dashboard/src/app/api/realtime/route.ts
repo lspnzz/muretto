@@ -16,8 +16,6 @@ const HEALTH_TIMEOUT_MS = 1_500;
 type ProbeResult = {
   base: string;
   ok: boolean;
-  status?: number;
-  error?: string;
 };
 
 function unique(values: string[]) {
@@ -122,13 +120,9 @@ async function probeBase(
       signal: signalWithTimeout(requestSignal),
     });
 
-    return { base, ok: response.ok, status: response.status };
-  } catch (error) {
-    return {
-      base,
-      ok: false,
-      error: error instanceof Error ? `${error.name}: ${error.message}` : "error",
-    };
+    return { base, ok: response.ok };
+  } catch {
+    return { base, ok: false };
   }
 }
 
@@ -143,29 +137,7 @@ async function firstReachableBase(requestSignal: AbortSignal) {
   return probes.find((probe) => probe.ok)?.base ?? null;
 }
 
-async function diagnostics(request: Request) {
-  const probes = await probeCandidates(request.signal);
-  const status = probes.some((probe) => probe.ok) ? 200 : 502;
-
-  return Response.json(
-    {
-      railway: {
-        environment: Boolean(process.env.RAILWAY_ENVIRONMENT_ID),
-        serviceName: process.env.RAILWAY_SERVICE_NAME ?? null,
-        hasRealtimeUrl: Boolean(process.env.REALTIME_URL),
-        hasNextPublicLiveUrl: Boolean(process.env.NEXT_PUBLIC_LIVE_URL),
-      },
-      probes,
-    },
-    { status },
-  );
-}
-
 export async function GET(request: Request) {
-  if (new URL(request.url).searchParams.has("diagnostics")) {
-    return diagnostics(request);
-  }
-
   const base = await firstReachableBase(request.signal);
   if (!base) {
     return new Response("Realtime unavailable", { status: 502 });
