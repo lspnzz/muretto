@@ -69,8 +69,9 @@ Against the live feed, drop `F1_DEV_URL` (only works during a session weekend).
 
 ### Config (env)
 
-`ADDRESS` (full bind address override), `PORT` (binds `0.0.0.0:$PORT` when `ADDRESS` is
-unset; default port 80), `ORIGIN` (`;`-separated CORS origins), `RUST_LOG`, `F1_DEV_URL`
+`ADDRESS` (full bind address override), `PORT` (binds `0.0.0.0:$PORT` locally and
+`[::]:$PORT` on Railway when `ADDRESS` is unset; default port 80), `ORIGIN`
+(`;`-separated CORS origins), `RUST_LOG`, `F1_DEV_URL`
 (replay endpoint), and on the dashboard `REALTIME_URL`.
 
 ## Deploy

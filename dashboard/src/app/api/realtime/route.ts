@@ -2,22 +2,48 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const DEFAULT_REALTIME_URL = "http://localhost:4000";
-const RAILWAY_REALTIME_URLS = [
-  "http://realtime.railway.internal:80",
-  "http://realtime.railway.internal:8080",
-  "http://realtime.railway.internal:4000",
-];
+const RAILWAY_REALTIME_HOSTS = ["realtime", "muretto-realtime"];
+const RAILWAY_REALTIME_PORTS = ["80", "8080", "4000"];
 const HEALTH_TIMEOUT_MS = 1_500;
+
+function railwayHostCandidates() {
+  const serviceName = process.env.RAILWAY_SERVICE_NAME;
+  const derivedName = serviceName?.replace(/dashboard/i, "realtime");
+
+  return [derivedName, ...RAILWAY_REALTIME_HOSTS]
+    .filter((host): host is string => Boolean(host))
+    .map((host) =>
+      host
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, ""),
+    )
+    .filter(Boolean);
+}
+
+function railwayBaseUrls() {
+  return railwayHostCandidates().flatMap((host) =>
+    RAILWAY_REALTIME_PORTS.map(
+      (port) => `http://${host}.railway.internal:${port}`,
+    ),
+  );
+}
 
 function candidateBaseUrls() {
   const configured = [
     process.env.REALTIME_URL,
     process.env.NEXT_PUBLIC_LIVE_URL,
   ].filter((url): url is string => Boolean(url));
-  const railway = process.env.RAILWAY_ENVIRONMENT_ID ? RAILWAY_REALTIME_URLS : [];
+  const railway = process.env.RAILWAY_ENVIRONMENT_ID ? railwayBaseUrls() : [];
 
-  return [...configured, ...railway, DEFAULT_REALTIME_URL].map((url) =>
-    url.replace(/\/+$/, ""),
+  return Array.from(
+    new Set(
+      [...configured, ...railway, DEFAULT_REALTIME_URL].map((url) =>
+        url.replace(/\/+$/, ""),
+      ),
+    ),
   );
 }
 

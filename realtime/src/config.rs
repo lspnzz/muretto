@@ -30,11 +30,27 @@ pub const TOPICS: &[&str] = &[
 /// Address the HTTP/SSE server binds to.
 ///
 /// `ADDRESS` is the full override. Otherwise use Railway-style `PORT`, then
-/// fall back to port 80 for Docker/compose defaults.
+/// fall back to port 80 for Docker/compose defaults. On Railway, bind to IPv6
+/// too so private networking can reach the service in IPv6-only environments.
 pub fn address() -> String {
-    std::env::var("ADDRESS")
-        .or_else(|_| std::env::var("PORT").map(|port| format!("0.0.0.0:{port}")))
-        .unwrap_or_else(|_| "0.0.0.0:80".to_string())
+    address_from_env(
+        std::env::var("ADDRESS").ok(),
+        std::env::var("PORT").ok(),
+        std::env::var("RAILWAY_ENVIRONMENT_ID").is_ok(),
+    )
+}
+
+fn address_from_env(address: Option<String>, port: Option<String>, railway: bool) -> String {
+    if let Some(address) = address {
+        return address;
+    }
+
+    let port = port.unwrap_or_else(|| "80".to_string());
+    if railway {
+        format!("[::]:{port}")
+    } else {
+        format!("0.0.0.0:{port}")
+    }
 }
 
 /// Allowed CORS origins, `;`-separated (`ORIGIN`). Empty when unset.
@@ -48,4 +64,34 @@ pub fn origins() -> Vec<String> {
 /// connects here instead of the live F1 feed.
 pub fn dev_url() -> Option<String> {
     std::env::var("F1_DEV_URL").ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::address_from_env;
+
+    #[test]
+    fn explicit_address_wins() {
+        let address = address_from_env(
+            Some("127.0.0.1:4000".to_string()),
+            Some("80".to_string()),
+            true,
+        );
+
+        assert_eq!(address, "127.0.0.1:4000");
+    }
+
+    #[test]
+    fn local_port_uses_ipv4_wildcard() {
+        let address = address_from_env(None, Some("4000".to_string()), false);
+
+        assert_eq!(address, "0.0.0.0:4000");
+    }
+
+    #[test]
+    fn railway_port_uses_ipv6_wildcard() {
+        let address = address_from_env(None, Some("80".to_string()), true);
+
+        assert_eq!(address, "[::]:80");
+    }
 }
