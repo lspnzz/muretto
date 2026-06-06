@@ -41,11 +41,17 @@ export function currentTyre(state: State, racingNumber: string): string | undefi
 
 /** Current stint for a car (last stint), if known. */
 export function currentStint(state: State, racingNumber: string): Stint | undefined {
+  return stintsForDriver(state, racingNumber).at(-1);
+}
+
+/** Stint history for a car, sorted by stint index. */
+export function stintsForDriver(state: State, racingNumber: string): Stint[] {
   const stints = state.TimingAppData?.Lines?.[racingNumber]?.Stints;
-  if (!stints) return undefined;
-  const keys = Object.keys(stints);
-  const last = keys[keys.length - 1];
-  return (last && stints[last]) || undefined;
+  if (!stints) return [];
+
+  return Object.entries(stints)
+    .sort(([left], [right]) => Number(left) - Number(right))
+    .flatMap(([, stint]) => (stint ? [stint] : []));
 }
 
 /** Current stint lap count for a car, if known. */
@@ -55,6 +61,5 @@ export function stintLaps(state: State, racingNumber: string): number | undefine
 
 /** Best-effort stop count derived from stint count; the feed does not expose it directly. */
 export function pitCount(state: State, racingNumber: string): number {
-  const stints = state.TimingAppData?.Lines?.[racingNumber]?.Stints;
-  return Math.max(0, Object.keys(stints ?? {}).length - 1);
+  return Math.max(0, stintsForDriver(state, racingNumber).length - 1);
 }

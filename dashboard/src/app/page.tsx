@@ -16,7 +16,7 @@ export default function Page() {
           <div className="h-full lg:hidden">
             <MobileRaceTabs />
           </div>
-          <div className="hidden h-full overflow-y-auto lg:block">
+          <div className="hidden h-full overflow-auto lg:block">
             <LeaderBoard />
           </div>
         </div>
