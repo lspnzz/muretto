@@ -1,2 +1,2 @@
-// The realtime service base URL. NEXT_PUBLIC_ vars are inlined at build time.
-export const LIVE_URL = process.env.NEXT_PUBLIC_LIVE_URL ?? "http://localhost:4000";
+// The browser connects to the dashboard; the route handler proxies to realtime.
+export const LIVE_STREAM_URL = "/api/realtime";

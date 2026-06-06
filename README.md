@@ -71,7 +71,7 @@ Against the live feed, drop `F1_DEV_URL` (only works during a session weekend).
 
 `ADDRESS` (full bind address override), `PORT` (binds `0.0.0.0:$PORT` when `ADDRESS` is
 unset; default port 80), `ORIGIN` (`;`-separated CORS origins), `RUST_LOG`, `F1_DEV_URL`
-(replay endpoint), and on the dashboard `NEXT_PUBLIC_LIVE_URL`.
+(replay endpoint), and on the dashboard `REALTIME_URL`.
 
 ## Deploy
 
@@ -85,9 +85,10 @@ run on Railway, a VM, Render, Fly, or Cloud Run.
   - `dashboard`: set the service root directory to `/dashboard` and set the config path to
     `/dashboard/railway.toml`. It uses `dashboard/Dockerfile`, watches `/dashboard/**`, and
     healthchecks `/`.
-  - Generate a public domain for `realtime`, then set `NEXT_PUBLIC_LIVE_URL` on the dashboard to
-    that HTTPS URL before deploying the dashboard. Set `ORIGIN` on `realtime` to the dashboard
-    HTTPS URL if you want strict CORS.
+  - Set `REALTIME_URL` on the dashboard to the realtime service URL. This can be Railway's
+    private service URL or the realtime public HTTPS URL; it is read at runtime by the dashboard
+    server, not baked into the browser bundle. Set `ORIGIN` on `realtime` to the dashboard HTTPS
+    URL if you also expose realtime directly to browsers with strict CORS.
   - The realtime service must be a **single always-on instance** (it holds the feed connection and
     in-memory state — do **not** scale it to multiple replicas).
 - **Any VM:** `docker compose --profile tls up -d` with `DOMAIN`/`EMAIL` set — Caddy fetches

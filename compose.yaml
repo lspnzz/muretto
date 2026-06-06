@@ -27,7 +27,7 @@ services:
     depends_on:
       - realtime
     environment:
-      - NEXT_PUBLIC_LIVE_URL=${NEXT_PUBLIC_LIVE_URL:-http://localhost:4000}
+      - REALTIME_URL=${REALTIME_URL:-http://realtime:80}
     ports:
       - "3000:3000"
     restart: unless-stopped

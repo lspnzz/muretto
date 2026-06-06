@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-import { LIVE_URL } from "@/lib/env";
+import { LIVE_STREAM_URL } from "@/lib/env";
 import { deepMerge } from "@/lib/merge";
 import { type Frame, pickFrame, trimBuffer } from "@/lib/buffer";
 import { useDataStore } from "@/stores/useDataStore";
@@ -21,7 +21,7 @@ export function useLiveData() {
   const buffer = useRef<Frame<State>[]>([]);
 
   useEffect(() => {
-    const sse = new EventSource(`${LIVE_URL}/api/realtime`);
+    const sse = new EventSource(LIVE_STREAM_URL);
     const now = () => Date.now();
 
     sse.onopen = () => useDataStore.getState().setConnected(true);
