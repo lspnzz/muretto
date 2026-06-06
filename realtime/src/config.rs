@@ -1,7 +1,7 @@
 //! Runtime configuration, read from the environment.
 
-/// Base host+path of the F1 SignalR endpoint.
-pub const F1_SIGNALR_URL: &str = "livetiming.formula1.com/signalr";
+/// Base host+path of the F1 SignalR Core endpoint.
+pub const F1_SIGNALR_URL: &str = "livetiming.formula1.com/signalrcore";
 
 /// SignalR hub name.
 pub const F1_HUB: &str = "Streaming";
@@ -9,22 +9,25 @@ pub const F1_HUB: &str = "Streaming";
 /// Topics subscribed to on the F1 feed. `.z` topics are zlib-compressed.
 pub const TOPICS: &[&str] = &[
     "Heartbeat",
-    "CarData.z",
-    "Position.z",
-    "ExtrapolatedClock",
-    "TimingStats",
-    "TimingAppData",
-    "WeatherData",
-    "TrackStatus",
-    "SessionStatus",
+    "AudioStreams",
     "DriverList",
+    "ExtrapolatedClock",
     "RaceControlMessages",
     "SessionInfo",
-    "SessionData",
-    "LapCount",
-    "TimingData",
+    "SessionStatus",
     "TeamRadio",
-    "ChampionshipPrediction",
+    "TimingAppData",
+    "TimingStats",
+    "TrackStatus",
+    "WeatherData",
+    "Position.z",
+    "CarData.z",
+    "ContentStreams",
+    "SessionData",
+    "TimingData",
+    "TopThree",
+    "RcmSeries",
+    "LapCount",
 ];
 
 /// Address the HTTP/SSE server binds to.
