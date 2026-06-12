@@ -1,13 +1,14 @@
 "use client";
 
 import { personalBestLapPosition } from "@/lib/ragged";
+import { displayName } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import type { Driver, Stint, TimingDataDriver } from "@/types";
 import { DriverTag } from "./DriverTag";
 import { GapCell, LapTimeCell, TyreCell } from "./cells";
 import { SectorsCell } from "./SectorsCell";
 
-export const TIMING_GRID = "5.5rem 4.25rem 4.75rem 5.25rem auto";
+export const TIMING_GRID = "10rem 4.25rem 4.75rem 5.25rem auto";
 
 export function TimingRow({
   racingNumber,
@@ -36,7 +37,7 @@ export function TimingRow({
     >
       <DriverTag
         position={timing.Position || String(position)}
-        tla={driver?.Tla || racingNumber}
+        name={displayName(driver, racingNumber)}
         teamColour={driver?.TeamColour}
       />
       <TyreCell stints={stints} />

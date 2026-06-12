@@ -2,15 +2,15 @@
 
 /**
  * Broadcast-tower driver cell: white position number (the leader's sits on
- * the F1-red box) and the TLA in team colour.
+ * the F1-red box) and the driver's name in team colour — no racing number.
  */
 export function DriverTag({
   position,
-  tla,
+  name,
   teamColour,
 }: {
   position: string;
-  tla: string;
+  name: string;
   teamColour?: string;
 }) {
   const colour = teamColour ? `#${teamColour}` : "#a1a1aa";
@@ -24,8 +24,11 @@ export function DriverTag({
       >
         {position}
       </span>
-      <p className="text-lg leading-none font-bold tracking-wide" style={{ color: colour }}>
-        {tla}
+      <p
+        className="truncate text-base leading-none font-bold tracking-wide uppercase"
+        style={{ color: colour }}
+      >
+        {name}
       </p>
     </div>
   );

@@ -10,6 +10,21 @@ export type DriverRow = {
   position: number;
 };
 
+/**
+ * Broadcast-style surname for the timing tower (casing styled in CSS).
+ * Falls back through the name fields a sparse feed may omit.
+ */
+export function displayName(driver: Driver | undefined, racingNumber: string): string {
+  if (!driver) return racingNumber;
+  return (
+    driver.LastName ||
+    driver.FullName?.split(" ").slice(1).join(" ") ||
+    driver.BroadcastName?.replace(/^[A-Z]\.?\s+/, "") ||
+    driver.Tla ||
+    racingNumber
+  );
+}
+
 /** Drivers ordered by current timing position (falling back to grid line). */
 export function orderedDrivers(state: State): DriverRow[] {
   const drivers = state.DriverList ?? {};

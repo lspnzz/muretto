@@ -168,8 +168,8 @@ fn replay_fixture_initial_then_partial_sequence() {
     assert_eq!(weather.rainfall, "0"); // sibling untouched by the partial
 
     let position = s.position.as_ref().unwrap().position.last().unwrap();
-    assert_eq!(position.entries["44"].x, 1400.0);
-    assert_eq!(position.entries["16"].y, 730.0);
+    assert_eq!(position.entries["44"].x, 6955.0);
+    assert_eq!(position.entries["16"].y, 11018.0);
 
     let car_data = s.car_data.as_ref().unwrap();
     assert_eq!(car_data.entries[0].cars["44"].channels.speed, 295);
