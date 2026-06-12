@@ -13,10 +13,8 @@ export function OverviewTab() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 lg:p-6">
       {live && <SessionBanner ended={liveness === "ended"} />}
-      <div className="grid items-start gap-4 lg:grid-cols-[3fr_2fr]">
-        <NextRace />
-        <TrackConditions live={live} />
-      </div>
+      <NextRace />
+      <TrackConditions live={live} />
     </div>
   );
 }
