@@ -107,14 +107,23 @@ async fn apply_initial(state: &Arc<RwLock<State>>, tx: &broadcast::Sender<String
     broadcast_full(state, tx).await;
 }
 
-/// Apply one update to state and broadcast the delta as `{ "<Topic>": <data> }`.
+/// Apply one update to state, refresh the liveness stamp, and broadcast the
+/// delta as `{ "<Topic>": <data> }`.
 async fn handle(
     state: &Arc<RwLock<State>>,
     tx: &broadcast::Sender<String>,
     topic: &str,
     data: Value,
 ) {
-    state.write().await.apply(topic, data.clone());
+    {
+        let mut guard = state.write().await;
+        guard.apply(topic, data.clone());
+        // Heartbeat proves the socket is alive, not that a session is
+        // producing data, so it doesn't refresh the stamp.
+        if topic != "Heartbeat" {
+            guard.last_feed_event_ms = Some(now_ms());
+        }
+    }
     let mut obj = Map::with_capacity(1);
     obj.insert(topic.to_string(), data);
     if let Ok(payload) = serde_json::to_string(&Value::Object(obj)) {
@@ -141,5 +150,52 @@ fn decode(topic: &str, data: Value) -> Result<Value> {
         decompress::decompress(encoded)
     } else {
         Ok(data)
+    }
+}
+
+/// Wall-clock epoch milliseconds (0 if the clock reads before the epoch).
+fn now_ms() -> i64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn handle_stamps_liveness_for_data_topics() {
+        let state = Arc::new(RwLock::new(State::default()));
+        let (tx, _rx) = broadcast::channel(8);
+
+        handle(&state, &tx, "TrackStatus", json!({ "Status": "1" })).await;
+
+        let guard = state.read().await;
+        assert!(guard.last_feed_event_ms.is_some());
+        assert_eq!(
+            guard.track_status.as_ref().map(|t| t.status.as_str()),
+            Some("1")
+        );
+    }
+
+    #[tokio::test]
+    async fn heartbeat_does_not_refresh_liveness() {
+        let state = Arc::new(RwLock::new(State::default()));
+        let (tx, _rx) = broadcast::channel(8);
+
+        handle(
+            &state,
+            &tx,
+            "Heartbeat",
+            json!({ "Utc": "2026-06-12T00:00:00Z" }),
+        )
+        .await;
+
+        let guard = state.read().await;
+        assert!(guard.last_feed_event_ms.is_none());
+        assert!(guard.heartbeat.is_some()); // the topic itself still merges
     }
 }

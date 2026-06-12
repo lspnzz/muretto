@@ -77,5 +77,5 @@ the reference docs.
 - **Model / `State`** → `cargo test --workspace`, commit the regenerated types.
 - **Ingest / signalr / server** → `./scripts/smoke.sh`.
 - **UI** → run the full stack (run-stack skill); the fixture renders a
-  two-driver leaderboard (HAM, LEC).
+  five-driver race (HAM, LEC, VER, NOR, ALO) across all three tabs.
 - **Docs** → `./scripts/checks.sh`; CI also link-checks.

@@ -62,6 +62,16 @@ pub struct State {
     pub team_radio: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub championship_prediction: Option<Value>,
+
+    // --- Synthetic liveness stamp, not a feed topic (plan 0003). ---
+    /// Epoch ms when the last *streamed* frame (excluding `Heartbeat`) was
+    /// applied. `None` until the feed proves a session is producing data —
+    /// the subscribe snapshot alone never sets it, so clients can tell a
+    /// held-over snapshot from a live stream. Rides full snapshots only;
+    /// per-topic deltas never carry it (egress stays delta-sized).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(type = "number | null")]
+    pub last_feed_event_ms: Option<i64>,
 }
 
 impl State {
