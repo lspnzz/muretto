@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { useUpcomingRace } from "@/hooks/useUpcomingRace";
+import { marshalSegments, sliceSegment, trackMapFlags } from "@/lib/flags";
+import type { TrackMapFlags } from "@/lib/flags";
 import { orderedDrivers } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import type { PositionCar, State } from "@/types";
@@ -14,6 +16,10 @@ type CircuitGeometry = {
   x?: number[];
   y?: number[];
   corners?: Array<{
+    number: number;
+    trackPosition: { x: number; y: number };
+  }>;
+  marshalSectors?: Array<{
     number: number;
     trackPosition: { x: number; y: number };
   }>;
@@ -40,6 +46,37 @@ type TrackPoint = RawPoint & {
 const WIDTH = 200;
 const HEIGHT = 80;
 const PAD = 6;
+
+// Hexes match TRACK_STATUS in lib/trackStatus.ts (amber-400 / red-500).
+const TRACK_DEFAULT = "#3f3f46";
+const TRACK_CAUTION = "#fbbf24";
+const TRACK_RED = "#ef4444";
+
+const FLAG_BADGE: Partial<
+  Record<TrackMapFlags["kind"], { label: string; fill: string; text: string }>
+> = {
+  yellow: { label: "YELLOW FLAG", fill: TRACK_CAUTION, text: "#18181b" },
+  sc: { label: "SAFETY CAR", fill: TRACK_CAUTION, text: "#18181b" },
+  vsc: { label: "VSC DEPLOYED", fill: TRACK_CAUTION, text: "#18181b" },
+  "vsc-ending": { label: "VSC ENDING", fill: TRACK_CAUTION, text: "#18181b" },
+  red: { label: "RED FLAG", fill: TRACK_RED, text: "#fafafa" },
+};
+
+/** The whole outline takes the flag colour once the caution covers the track. */
+function trackColorFor(flags: TrackMapFlags): string {
+  switch (flags.kind) {
+    case "red":
+      return TRACK_RED;
+    case "sc":
+    case "vsc":
+    case "vsc-ending":
+      return TRACK_CAUTION;
+    case "yellow":
+      return flags.trackWide ? TRACK_CAUTION : TRACK_DEFAULT;
+    default:
+      return TRACK_DEFAULT;
+  }
+}
 
 export function TrackMap() {
   const state = useDataStore((s) => s.state);
@@ -84,7 +121,12 @@ export function TrackMap() {
       return left - right;
     });
 
-  const drawing = useMemo(() => buildDrawing(geometry, cars), [geometry, cars]);
+  const flags = useMemo(
+    () => trackMapFlags(state.TrackStatus?.Status, state.RaceControlMessages),
+    [state.TrackStatus, state.RaceControlMessages],
+  );
+  const drawing = useMemo(() => buildDrawing(geometry, cars, flags), [geometry, cars, flags]);
+  const badge = FLAG_BADGE[flags.kind];
 
   return (
     <section className="rounded-lg border border-zinc-800 p-4">
@@ -106,12 +148,53 @@ export function TrackMap() {
         >
           <path
             d={drawing.trackPath}
-            className="fill-none stroke-zinc-700"
+            fill="none"
+            stroke={trackColorFor(flags)}
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth="1.5"
             vectorEffect="non-scaling-stroke"
           />
+
+          {drawing.yellowSegments.map((segment) => (
+            <path
+              key={segment.number}
+              d={segment.path}
+              fill="none"
+              stroke={TRACK_CAUTION}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="3"
+              vectorEffect="non-scaling-stroke"
+              className={segment.flag === "double-yellow" ? "animate-pulse" : undefined}
+            >
+              <title>{`${segment.flag === "double-yellow" ? "Double yellow" : "Yellow"} in track sector ${segment.number}`}</title>
+            </path>
+          ))}
+
+          {badge && (
+            <g aria-label={badge.label}>
+              <rect
+                x="2"
+                y="2"
+                width={badge.label.length * 2.6 + 5}
+                height="8"
+                rx="1.5"
+                fill={badge.fill}
+                className={flags.kind === "vsc-ending" ? "animate-pulse" : undefined}
+              />
+              <text
+                x={2 + (badge.label.length * 2.6 + 5) / 2}
+                y="6.4"
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill={badge.text}
+                className="font-mono text-[4px] font-semibold"
+              >
+                {badge.label}
+              </text>
+            </g>
+          )}
 
           {drawing.corners.map((corner) => (
             <text
@@ -186,7 +269,7 @@ function hasOutline(value: CircuitGeometry | null): value is CircuitGeometryWith
   return Boolean(value?.x?.length && value.y?.length && value.x.length === value.y.length);
 }
 
-function buildDrawing(geometry: CircuitGeometry | null, cars: TrackPoint[]) {
+function buildDrawing(geometry: CircuitGeometry | null, cars: TrackPoint[], flags: TrackMapFlags) {
   if (!hasOutline(geometry)) return null;
 
   const outline = geometry.x.map((x, i) => ({ x, y: geometry.y[i] }));
@@ -203,12 +286,35 @@ function buildDrawing(geometry: CircuitGeometry | null, cars: TrackPoint[]) {
     rotation,
   );
   const bounds = boundsFor(rotatedOutline);
+  const projected = rotatedOutline.map((point) => project(point, bounds));
 
   return {
-    trackPath: pathFor(rotatedOutline.map((point) => project(point, bounds))),
+    trackPath: pathFor(projected),
+    yellowSegments: yellowSegmentPaths(outline, projected, geometry, flags),
     cars: staggerLabels(rotatedCars.map((point) => ({ ...point, ...project(point, bounds) }))),
     corners: rotatedCorners.map((corner) => ({ ...corner, ...project(corner, bounds) })),
   };
+}
+
+/**
+ * Paths for the marshal sectors currently under yellow. Sector boundaries are
+ * matched against the *raw* outline (marshal posts share its coordinate
+ * space), then the index ranges slice the projected points — indices survive
+ * rotation and projection, so both stay in lockstep.
+ */
+function yellowSegmentPaths(
+  outline: RawPoint[],
+  projected: RawPoint[],
+  geometry: CircuitGeometry,
+  flags: TrackMapFlags,
+) {
+  if (flags.kind !== "yellow" || flags.sectors.size === 0) return [];
+
+  return marshalSegments(outline, geometry.marshalSectors).flatMap((segment) => {
+    const flag = flags.sectors.get(segment.number);
+    if (!flag) return [];
+    return [{ number: segment.number, flag, path: pathFor(sliceSegment(projected, segment)) }];
+  });
 }
 
 // Approximate label footprint in viewBox units, for collision checks.

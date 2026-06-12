@@ -92,6 +92,13 @@ and plan [0004](../plans/0004-timings-tab-restyle.md):
   INTERMEDIATE `#128330`, WET `#1F6DA1`.
 - **Track status pill** (`TrackStatus.Status`): 1 clear/emerald, 2/3/4/6/7
   amber (4 = safety car, 6/7 = VSC), 5 red.
+- **Track-map flag layer**: whole-track states come from `TrackStatus`
+  (SC/VSC/red tint the outline and show a badge); *where* a yellow lives only
+  exists in `RaceControlMessages` — `lib/flags.ts` replays that log (`YELLOW`/
+  `DOUBLE YELLOW` set a marshal sector, `CLEAR` clears it, track-scoped
+  `GREEN`/`CLEAR` wipes) and paints the matching `marshalSectors` segments
+  (see [multiviewer-circuits](multiviewer-circuits.md)). Double yellow
+  pulses.
 - **Fastest-lap holder** (row highlight + violet best lap): the driver whose
   `TimingStats.Lines[nr].PersonalBestLapTime.Position == 1` — `TimingStats`
   is a ragged topic, read it defensively.

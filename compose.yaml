@@ -39,6 +39,10 @@ services:
       context: .
       dockerfile: simulator/Dockerfile
     command: ["replay", "/fixtures/sample.jsonl"]
+    environment:
+      # ms per frame; raise (e.g. 600) to slow the loop down enough to eyeball
+      # transient states — sector yellows, SC/VSC, red flag — in the dashboard.
+      - REPLAY_FRAME_DELAY_MS=${REPLAY_FRAME_DELAY_MS:-100}
     volumes:
       - ./simulator/fixtures:/fixtures:ro
     profiles: ["dev"]
