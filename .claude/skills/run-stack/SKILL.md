@@ -37,15 +37,19 @@ F1_DEV_URL=ws://replay:8000/ws docker compose --profile dev up --build
   `SessionInfo`, `DriverList`, `TrackStatus`
 - `curl -N http://127.0.0.1:4000/api/realtime` → `event: initial` immediately,
   then `event: update` at ~10 Hz
-- Dashboard shows a two-driver leaderboard (HAM, LEC). The fixture is 6 frames;
-  replay closes at EOF and realtime reconnects ~2s later, so it loops forever.
+- Dashboard shows a five-driver leaderboard (HAM, LEC, VER, NOR, ALO). The
+  fixture is 14 lines; replay closes at EOF and realtime reconnects ~2s later,
+  so it loops forever.
 
 ## Gotchas
 
 - Replay binds `0.0.0.0:8000`, hardcoded — free that port first (`smoke.sh`
   checks and tells you).
 - `simulator/fixtures/sample.jsonl` is tiny and synthetic. Record a real
-  session (live weekends only): `cargo run -p simulator -- save <file>`.
+  session (live weekends only) with `./scripts/record.sh [name]` — survives
+  disconnects, rotates per session, works via Docker with no toolchain. Replay
+  it with `smoke.sh <file>` or the steps above; trim a head slice into a
+  committed fixture with `simulator trim` (docs/references/f1-feed.md).
 - The browser consumes SSE via the dashboard's own proxy route
   (`/api/realtime` on :3000), not realtime directly — check that path when
   debugging the UI, and the feed wire format in `docs/references/f1-feed.md`.

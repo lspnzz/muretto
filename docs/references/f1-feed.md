@@ -100,15 +100,36 @@ deltas (`realtime/src/server/mod.rs`).
 
 ## Recording and replaying sessions
 
-- Record (live session only): `cargo run -p simulator -- save <file>` —
-  refuses to overwrite. Line 1 is `{"R": <initial>}`; every later line is one
-  raw frame, verbatim.
+- Record (live session only): `./scripts/record.sh [name]` → writes
+  `recordings/<name>.data.jsonl` (gitignored; uses cargo, or the simulator
+  Docker image when there's no toolchain). Under the hood:
+  `cargo run -p simulator -- save <file>` — refuses to overwrite. Line 1 is
+  `{"R": <initial>}`; every later line is one raw frame, verbatim.
+- The recorder is built for unattended weekends (`simulator/src/save.rs`):
+  it **reconnects** on socket drop/error and after 90s of silence (half-open
+  sockets), appending the fresh snapshot as one synthetic legacy feed frame
+  (full per-topic state, timestamp `"catch-up"`, `SessionInfo` excluded so
+  replay doesn't loop) — so replays don't carry the gap. A `SessionInfo`
+  update with a `Name` (ingest's new-session rule) **rotates** to
+  `<name>.data.2.jsonl` etc., one file per session. SIGINT/SIGTERM flush
+  before exit, so Ctrl-C and `docker stop` keep the tail.
+- Trim a recording's head into a committed fixture:
+  `cargo run -p simulator -- trim <recording> simulator/fixtures/<name>.jsonl <frames>`
+  — snapshot + first N lines. Head slices only: a mid-session slice would
+  need the preceding frames folded into a synthesized snapshot. The raw
+  capture is disposable once the fixture is committed — the fixture is the
+  artifact, there is no recording archive
+  ([plan 0004](../plans/0004-record-real-sessions.md)).
 - Replay: `cargo run -p simulator -- replay <file>` — serves
   `ws://0.0.0.0:8000/ws` (address hardcoded), ~10 Hz, loops nothing: when the
   file ends it closes the socket and realtime's supervisor reconnects, so the
   fixture effectively replays in a loop.
-- `simulator/fixtures/sample.jsonl` is a tiny **synthetic** session (2
-  drivers, HAM/LEC, 6 lines) used by tests and `scripts/smoke.sh`.
+- `simulator/fixtures/sample.jsonl` is a small **synthetic** session (5
+  drivers, 14 lines) used by tests and `scripts/smoke.sh`. Every `.jsonl`
+  dropped into `simulator/fixtures/` is automatically pinned by the
+  `every_checked_in_fixture_replays_cleanly` test in
+  `realtime/tests/merge.rs`, and `./scripts/smoke.sh <file>` runs the offline
+  stack against any recording or fixture.
 
 ## Code map
 
@@ -119,4 +140,4 @@ deltas (`realtime/src/server/mod.rs`).
 | `realtime/src/ingest/decompress.rs` | base64 + raw-DEFLATE decoding, `.z` re-keying |
 | `realtime/src/model/state.rs` | the typed `State` tree (ts-rs root) |
 | `realtime/src/model/de.rs` | array-vs-index-keyed-object normalization |
-| `simulator/src/save.rs`, `replay.rs` | record / serve recordings |
+| `simulator/src/save.rs`, `replay.rs`, `trim.rs` | record / serve / excerpt recordings |
