@@ -15,8 +15,11 @@ dashboard/.turbo/
 !.env.example
 compose.env
 
-# Recorded F1 sessions (replay fixtures are opt-in, kept under tests/fixtures)
+# Recorded F1 sessions — full recordings never land in git; committed replay
+# fixtures are opt-in, trimmed slices under simulator/fixtures/ (see
+# docs/references/f1-feed.md).
 *.data.*
+recordings/
 
 # Local Claude Code dev config (personal, not shared)
 .claude/settings.local.json

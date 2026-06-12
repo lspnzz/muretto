@@ -179,6 +179,47 @@ fn replay_fixture_initial_then_partial_sequence() {
     assert_eq!(messages["2"].lap, Some(12)); // keyed append from the delta
 }
 
+/// Every fixture in `simulator/fixtures/` must replay cleanly end to end: the
+/// snapshot decodes and folds, and every later line either parses as feed
+/// frames (both wire shapes) that fold without panicking, or is a skippable
+/// non-feed frame (Core keep-alives). Dropping a trimmed real-session
+/// recording into the fixtures directory pins it with no per-file assertions.
+#[test]
+fn every_checked_in_fixture_replays_cleanly() {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../simulator/fixtures");
+    let mut checked = 0;
+    for entry in std::fs::read_dir(&dir).expect("fixtures directory exists") {
+        let path = entry.expect("readable directory entry").path();
+        if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+            continue;
+        }
+        let contents = std::fs::read_to_string(&path).expect("fixture reads");
+        let mut lines = contents.lines().filter(|line| !line.trim().is_empty());
+        let mut state = State::default();
+
+        let first = lines.next().expect("fixture has a snapshot line");
+        let initial: Value = serde_json::from_str(first).expect("snapshot line parses");
+        for (topic, data) in initial["R"].as_object().expect("first line carries R") {
+            apply_decoded(&mut state, topic, data.clone());
+        }
+
+        let mut updates = 0;
+        for line in lines {
+            for update in realtime::signalr::parse_feed(line).into_iter().flatten() {
+                apply_decoded(&mut state, &update.topic, update.data);
+                updates += 1;
+            }
+        }
+        assert!(updates > 0, "{} carried no feed updates", path.display());
+        checked += 1;
+    }
+    assert!(
+        checked >= 1,
+        "no .jsonl fixtures found in {}",
+        dir.display()
+    );
+}
+
 fn apply_decoded(state: &mut State, topic: &str, data: Value) {
     let canonical = decompress::canonical_topic(topic);
     let decoded = if decompress::is_compressed(topic) {

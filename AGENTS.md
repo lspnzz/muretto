@@ -21,7 +21,7 @@ types **generated from the Rust model**. No database; state lives in memory.
 | `simulator/` | record/replay tool — develop with no live race |
 | `dashboard/` | Next.js UI; `src/types/` is **generated, never edited** |
 | `docs/` | knowledge base — [index](docs/README.md) |
-| `scripts/` | `smoke.sh` (offline e2e), `checks.sh` (hygiene gates) |
+| `scripts/` | `smoke.sh` (offline e2e), `checks.sh` (hygiene gates), `record.sh` (capture a live session) |
 | `.github/workflows/` | CI, docs gates, weekly link maintenance |
 
 ## Commands
