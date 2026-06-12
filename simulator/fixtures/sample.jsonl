@@ -14,3 +14,5 @@
 {"M": [{"H": "Streaming", "M": "feed", "A": ["Position.z", "fc8/C4MwEIfh7/KbI1xi/ujtnVuoQ2vpIMUhFLVoOkm+e5XQOtUlcHAP92bGaZh88EMPvs2ofNdOoeleYChSKiOXUV5JzYqYbA2BQx9G307gGVqv7zk04b3MOPbV2Dyey84FbEtjBK5gSbKQAjWYooC0O6QwLpHVbOS/yHOlk1AluZ/YyTJKpizjCrud2BFLTKrSuvz+I8Z7/AA=", "2022-07-03T14:20:06Z"]}]}
 {"M": [{"H": "Streaming", "M": "feed", "A": ["TeamRadio", {"Captures": [{"Utc": "2022-07-03T14:12:11Z", "RacingNumber": "44", "Path": "TeamRadio/LEWHAM01_44_20220703_141211.mp3"}, {"Utc": "2022-07-03T14:18:42Z", "RacingNumber": "16", "Path": "TeamRadio/CHALEC01_16_20220703_141842.mp3"}, {"Utc": "2022-07-03T14:21:30Z", "RacingNumber": "1", "Path": "TeamRadio/MAXVER01_1_20220703_142130.mp3"}]}, "2022-07-03T14:20:06Z"]}]}
 {"M": [{"H": "Streaming", "M": "feed", "A": ["ExtrapolatedClock", {"Utc": "2022-07-03T14:21:10Z", "Remaining": "01:22:30", "Extrapolating": true}, "2022-07-03T14:20:07Z"]}]}
+{"M": [{"H": "Streaming", "M": "feed", "A": ["SessionStatus", {"Status": "Aborted"}, "2022-07-03T14:21:11Z"]}]}
+{"M": [{"H": "Streaming", "M": "feed", "A": ["SessionStatus", {"Status": "Started"}, "2022-07-03T14:21:12Z"]}]}

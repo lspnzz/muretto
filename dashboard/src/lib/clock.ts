@@ -6,7 +6,7 @@ import type { ExtrapolatedClock } from "@/types";
  * Past this age the clock's UTC anchor is from a recording, not a live
  * session — extrapolating against it would just pin the clock to 00:00:00.
  */
-const MAX_EXTRAPOLATION_AGE_MS = 6 * 60 * 60 * 1000;
+export const MAX_EXTRAPOLATION_AGE_MS = 6 * 60 * 60 * 1000;
 
 export function parseHms(value: string): number | null {
   const m = value.trim().match(/^(\d+):(\d{2}):(\d{2})$/);
