@@ -19,7 +19,9 @@ export function SessionBanner({ ended }: { ended: boolean }) {
   const session = state.SessionInfo;
   if (!session) return null;
 
-  const status = trackStatusStyle(state.TrackStatus?.Status);
+  // Green flag is the default state — only surface anomalous statuses.
+  const rawStatus = state.TrackStatus?.Status;
+  const status = rawStatus === "1" ? null : trackStatusStyle(rawStatus);
   const lap = state.LapCount;
   const remaining = remainingClock(state.ExtrapolatedClock, now);
 
@@ -60,7 +62,7 @@ export function SessionBanner({ ended }: { ended: boolean }) {
             className={`flex h-8 items-center rounded-md px-3 text-sm font-medium text-zinc-950 ${status.bg}`}
             style={{ boxShadow: `0 0 40px 4px ${status.hex}55` }}
           >
-            {state.TrackStatus?.Message || status.label}
+            {status.label}
           </span>
         )}
       </div>

@@ -62,7 +62,7 @@ function ConditionsSection({
         <h2 className="text-xs uppercase tracking-wide text-zinc-500">Track conditions</h2>
         <span className="font-mono text-xs text-zinc-600">{meta ? `${tag} · ${meta}` : tag}</span>
       </div>
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3">
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 lg:grid-cols-6">
         {items.map((item) => (
           <div key={item.label}>
             <dt className="text-[10px] uppercase tracking-wide text-zinc-600">{item.label}</dt>

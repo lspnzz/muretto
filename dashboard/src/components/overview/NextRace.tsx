@@ -42,6 +42,7 @@ export function NextRace() {
       <ul className="mt-4">
         {race.sessions.map((session) => {
           const past = Date.parse(session.iso) < Date.now();
+          const next = session === nextSession && !past;
           return (
             <li
               key={`${session.name}-${session.iso}`}
@@ -50,10 +51,21 @@ export function NextRace() {
                 past ? "opacity-50" : "",
               ].join(" ")}
             >
-              <span className="w-32 text-sm font-medium text-zinc-300">{session.name}</span>
-              <span className="font-mono text-sm tabular-nums text-zinc-500">
+              <span
+                className={`w-32 text-sm font-medium ${next ? "text-zinc-100" : "text-zinc-300"}`}
+              >
+                {session.name}
+              </span>
+              <span
+                className={`font-mono text-sm tabular-nums ${next ? "text-zinc-300" : "text-zinc-500"}`}
+              >
                 {formatDateTime(session.iso)}
               </span>
+              {next && (
+                <span className="rounded-sm bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-400">
+                  next
+                </span>
+              )}
             </li>
           );
         })}
