@@ -4,7 +4,8 @@
 //! Each field is a topic from the F1 feed. Central, well-shaped topics are fully
 //! typed; a few ragged ones (`TimingStats`, `TopThree`, `SessionData`,
 //! `TeamRadio`, `ChampionshipPrediction`) are kept as loose JSON on purpose
-//! (see the pragmatism guard in the design) so new feed fields never break ingest.
+//! (the pragmatism guard — `docs/design/core-beliefs.md`) so new feed fields
+//! never break ingest.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};

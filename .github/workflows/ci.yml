@@ -18,6 +18,8 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace
       - name: Format
         run: cargo fmt --all --check
       - name: Clippy
@@ -28,6 +30,22 @@ jobs:
         # cargo test re-exports the TypeScript types; fail if the committed
         # bindings are stale (the anti-drift gate the original project lacked).
         run: git diff --exit-code dashboard/src/types
+
+  docs:
+    name: Docs (links + hygiene gates)
+    uses: ./.github/workflows/docs-checks.yml
+
+  smoke:
+    name: Smoke (offline stack end-to-end)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace
+      - name: Replay fixture -> realtime -> SSE assertions
+        run: ./scripts/smoke.sh
 
   frontend:
     name: Dashboard (typecheck, test, build)

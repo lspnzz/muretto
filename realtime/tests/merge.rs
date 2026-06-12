@@ -168,7 +168,10 @@ fn replay_fixture_initial_then_partial_sequence() {
 fn apply_decoded(state: &mut State, topic: &str, data: Value) {
     let canonical = decompress::canonical_topic(topic);
     let decoded = if decompress::is_compressed(topic) {
-        decompress::decompress(data.as_str().unwrap()).unwrap()
+        let encoded = data
+            .as_str()
+            .expect("compressed fixture payload is a string");
+        decompress::decompress(encoded).expect("fixture payload decodes")
     } else {
         data
     };
