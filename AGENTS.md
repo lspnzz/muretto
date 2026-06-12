@@ -57,6 +57,7 @@ One line each — the *why* lives in [core-beliefs](docs/design/core-beliefs.md)
 - [docs/design/core-beliefs.md](docs/design/core-beliefs.md) — the invariants, with why
 - [docs/references/f1-feed.md](docs/references/f1-feed.md) — feed protocols, frame shapes, the deflate gotcha
 - [docs/references/multiviewer-circuits.md](docs/references/multiviewer-circuits.md) — track-map geometry API
+- [docs/references/strategy-screens.md](docs/references/strategy-screens.md) — circle of doom + timing-page conventions
 - [docs/plans/](docs/plans/) — `NNNN-slug.md` with status header and as-built deltas
 
 Multi-session work starts with a plan; landing cold in `realtime/` starts with
@@ -77,5 +78,5 @@ the reference docs.
 - **Model / `State`** → `cargo test --workspace`, commit the regenerated types.
 - **Ingest / signalr / server** → `./scripts/smoke.sh`.
 - **UI** → run the full stack (run-stack skill); the fixture renders a
-  two-driver leaderboard (HAM, LEC).
+  five-driver race (HAM, LEC, VER, NOR, ALO) across all three tabs.
 - **Docs** → `./scripts/checks.sh`; CI also link-checks.

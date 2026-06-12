@@ -37,6 +37,7 @@ export function useLiveData() {
       live.current = deepMerge(live.current, patch) as State;
       buffer.current.push({ t: now(), snapshot: structuredClone(live.current) });
       buffer.current = trimBuffer(buffer.current, now(), MAX_AGE_MS);
+      useDataStore.getState().setLastEventAt(now());
     });
 
     const tick = setInterval(() => {
