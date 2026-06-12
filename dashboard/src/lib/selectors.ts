@@ -1,7 +1,7 @@
 // Derive view-model rows from the typed state. Keeps PascalCase field access in
 // one place so components stay tidy.
 
-import type { CarChannels, Driver, State, TimingDataDriver } from "@/types";
+import type { Driver, State, TimingDataDriver } from "@/types";
 
 export type DriverRow = {
   racingNumber: string;
@@ -25,11 +25,4 @@ export function orderedDrivers(state: State): DriverRow[] {
 
   rows.sort((a, b) => a.position - b.position);
   return rows;
-}
-
-/** Latest telemetry channels for a car, if any. */
-export function telemetry(state: State, racingNumber: string): CarChannels | undefined {
-  const entries = state.CarData?.Entries;
-  if (!entries || entries.length === 0) return undefined;
-  return entries[entries.length - 1]?.Cars?.[racingNumber]?.Channels;
 }

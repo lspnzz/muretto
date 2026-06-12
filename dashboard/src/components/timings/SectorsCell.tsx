@@ -35,7 +35,7 @@ export function SectorsCell({
     .flatMap((key) => (sectors[key] ? [{ key, sector: sectors[key] }] : []));
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2.5">
       {ordered.map(({ key, sector }, index) => {
         const valueCls = sector.OverallFastest
           ? "text-violet-500"
@@ -49,22 +49,22 @@ export function SectorsCell({
 
         return (
           <div key={key} className="flex flex-col gap-1">
-            <div className="flex flex-row gap-1">
+            <div className="flex flex-row gap-0.5">
               {segmentList(sector.Segments).map((segment, i) => (
                 <div
                   key={i}
                   className={segmentClass(segment.Status)}
-                  style={{ width: 10, height: 5, borderRadius: 2 }}
+                  style={{ width: 9, height: 4, borderRadius: 2 }}
                 />
               ))}
             </div>
-            <div className="flex items-baseline gap-1.5">
-              <p className={`text-lg leading-none font-medium tabular-nums ${valueCls}`}>
+            <div className="flex items-baseline gap-1 font-mono">
+              <p className={`text-base leading-none font-medium tabular-nums ${valueCls}`}>
                 {sector.Value || sector.PreviousValue || "-- ---"}
               </p>
               {best && (
                 <p
-                  className={`text-sm leading-none tabular-nums ${
+                  className={`text-xs leading-none tabular-nums ${
                     bestIsOverall ? "text-violet-500" : "text-zinc-500"
                   }`}
                 >

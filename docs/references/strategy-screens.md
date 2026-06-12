@@ -64,8 +64,10 @@ in plain white text.
 
 ## Timing-page conventions (f1-dash-style)
 
-Functional facts of the look muretto's Timings tab replicates
-(<https://github.com/slowlydev/f1-dash>, AGPL — facts only, no code):
+Functional facts from the f1-dash look muretto's Timings tab started from
+(<https://github.com/slowlydev/f1-dash>, AGPL — facts only, no code). Where
+muretto now deliberately diverges, see the deltas at the end of this section
+and plan [0004](../plans/0004-timings-tab-restyle.md):
 
 - **Leaderboard grid**, one row per `TimingData.Lines` entry sorted by
   numeric `Position`:
@@ -98,3 +100,39 @@ Functional facts of the look muretto's Timings tab replicates
   `https://livetiming.formula1.com/static/{SessionInfo.Path}{capture.Path}`.
 - `SessionStatus.Status` lifecycle: `Inactive → Started → Finished →
   Finalised → Ends` (`Aborted` = red flag, still live).
+
+## Official timing-screen facts (FOM / F1 app)
+
+Independently verified 2026-06 (Paceteq OneTiming
+[Page 1](https://support.paceteq.com/onetiming/page-1) /
+[Page 2](https://support.paceteq.com/onetiming/page-2), FOM's live-timing
+web product at f1academy.com/livetiming, the
+[F1 app store screenshots](https://apps.apple.com/us/app/formula-1/id835022598)):
+
+- **FOM "Page 1" classification columns**: P · car № · name · Gap ·
+  Interval · S1 S2 S3 · Best · Time (last lap) · Lap · Pit. "Page 2" is the
+  chronological lap log (newest first). Trackside screens rotate pages.
+- **Palette** (FOM CSS): black background, white text, purple `#6A00EB`
+  overall best, green personal best, yellow set-but-slower, cyan `#38FFF5`
+  highlights, grey dimmed. White = most recently completed value.
+- **Texture**: thin rules between rows, *no* zebra striping; not monospace
+  (Open Sans 600) — right-aligned numeric columns make the terminal look.
+- **F1 app leaderboard row**: position in a white rounded chip (black
+  number) → thin vertical team-colour bar → white bold TLA. Racing numbers
+  do **not** appear in rows — team-coloured italic numbers are a broadcast
+  graphics convention.
+
+### Muretto deltas (2026 restyle, plan [0004](../plans/0004-timings-tab-restyle.md))
+
+- **No DRS column.** 2026 cars have no DRS, and the feed offers no
+  replacement signal — `CarData` channels remain 0/2/3/4/5/45 with nothing
+  for energy deployment or the manual-override mode. No info column either:
+  pit state (`InPit`/`PitOut`) rides the gap column in cyan.
+- **Driver cell follows the broadcast tower**, not the app row: white
+  position number (leader's on the F1-red `#e10600` box), TLA in team
+  colour. No racing number — matching both the tower and the app.
+- **Track map sits left of the leaderboard** (sticky at desktop widths).
+  No separate session strip: the leaderboard panel's title line carries the
+  session name, running clock, and track-status dot. The panel uses
+  FOM-style thin row rules and monospace timing figures, in the same panel
+  grammar as the other tabs.
