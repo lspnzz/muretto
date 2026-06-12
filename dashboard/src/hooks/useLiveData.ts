@@ -9,7 +9,6 @@ import { useDataStore } from "@/stores/useDataStore";
 import type { State } from "@/types";
 
 const TICK_MS = 100;
-const MAX_AGE_MS = 30_000;
 
 /**
  * Connects to the realtime SSE stream, merges `initial`/`update` events into a
@@ -36,7 +35,7 @@ export function useLiveData() {
       const patch = JSON.parse((event as MessageEvent).data);
       live.current = deepMerge(live.current, patch) as State;
       buffer.current.push({ t: now(), snapshot: structuredClone(live.current) });
-      buffer.current = trimBuffer(buffer.current, now(), MAX_AGE_MS);
+      buffer.current = trimBuffer(buffer.current, now(), useDataStore.getState().maxDelayMs);
       useDataStore.getState().setLastEventAt(now());
     });
 
