@@ -51,4 +51,16 @@ describe("deriveLiveness", () => {
     const s = state({ SessionStatus: { Status: "Aborted" } });
     expect(deriveLiveness(s, NOW - 1_000, NOW)).toBe("live");
   });
+
+  it("a running session rides out quiet spells", () => {
+    // Between qualifying segments nothing may stream for minutes.
+    const s = state({ SessionStatus: { Status: "Started" } });
+    expect(deriveLiveness(s, NOW - 5 * 60_000, NOW)).toBe("live");
+    expect(deriveLiveness(s, NOW - 11 * 60_000, NOW)).toBe("stale");
+  });
+
+  it("without a running status the short window applies", () => {
+    const s = state({ SessionStatus: { Status: "Inactive" } });
+    expect(deriveLiveness(s, NOW - 3 * 60_000, NOW)).toBe("stale");
+  });
 });

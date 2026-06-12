@@ -11,7 +11,7 @@ export function NoLiveSession() {
   const connected = useDataStore((s) => s.connected);
 
   const subtitle = !connected
-    ? "Connection to the realtime service is down."
+    ? "Connecting to the realtime service…"
     : liveness === "stale"
       ? "The realtime feed is quiet — timing data is hidden so it can't go stale."
       : "Waiting for a session to start.";

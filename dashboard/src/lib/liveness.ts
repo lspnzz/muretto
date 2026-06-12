@@ -16,10 +16,19 @@ export type Liveness = "live" | "ended" | "stale" | "none";
 /** Data must keep flowing within this window to count as live. */
 export const FRESH_WINDOW_MS = 120_000;
 
+/**
+ * Wider allowance while the feed says the session is running: real sessions
+ * have quiet spells (between qualifying segments, long stoppages) and a
+ * held-over snapshot never carries a running status — sessions archive as
+ * Finished/Finalised/Ends — so trusting it doesn't reopen the stale-data bug.
+ */
+export const RUNNING_FRESH_WINDOW_MS = 10 * 60 * 1000;
+
 /** After a session ends, keep showing its result this long, clearly badged. */
 export const ENDED_GRACE_MS = 3 * 60 * 60 * 1000;
 
 const ENDED_STATUSES = new Set(["Finished", "Finalised", "Ends"]);
+const RUNNING_STATUSES = new Set(["Started", "Aborted"]);
 
 export function deriveLiveness(
   state: State | undefined,
@@ -36,7 +45,9 @@ export function deriveLiveness(
     return age <= ENDED_GRACE_MS ? "ended" : "stale";
   }
 
-  return age <= FRESH_WINDOW_MS ? "live" : "stale";
+  const window =
+    status && RUNNING_STATUSES.has(status) ? RUNNING_FRESH_WINDOW_MS : FRESH_WINDOW_MS;
+  return age <= window ? "live" : "stale";
 }
 
 /** True when the tabs should render timing widgets at all. */
