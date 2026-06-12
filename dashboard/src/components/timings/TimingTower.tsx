@@ -62,6 +62,7 @@ function PanelHeader() {
   const session = useDataStore((s) => s.state.SessionInfo);
   const clock = useDataStore((s) => s.state.ExtrapolatedClock);
   const trackStatus = useDataStore((s) => s.state.TrackStatus);
+  const delayMs = useDataStore((s) => s.delayMs);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -69,7 +70,9 @@ function PanelHeader() {
     return () => clearInterval(tick);
   }, []);
 
-  const remaining = remainingClock(clock, now);
+  // now − delayMs: extrapolating to wall-now would show the live clock even
+  // in a delayed view (see SessionBanner).
+  const remaining = remainingClock(clock, now - delayMs);
   const status = trackStatusStyle(trackStatus?.Status);
 
   return (

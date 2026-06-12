@@ -9,6 +9,7 @@ import { useDataStore } from "@/stores/useDataStore";
 /** Hero strip for the session currently on track (or just finished). */
 export function SessionBanner({ ended }: { ended: boolean }) {
   const state = useDataStore((s) => s.state);
+  const delayMs = useDataStore((s) => s.delayMs);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -21,7 +22,9 @@ export function SessionBanner({ ended }: { ended: boolean }) {
 
   const status = trackStatusStyle(state.TrackStatus?.Status);
   const lap = state.LapCount;
-  const remaining = remainingClock(state.ExtrapolatedClock, now);
+  // Evaluate at the delayed moment: the clock extrapolates from its own UTC
+  // anchor, so passing wall-now would leak the live time into a delayed view.
+  const remaining = remainingClock(state.ExtrapolatedClock, now - delayMs);
 
   return (
     <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-950 p-5">

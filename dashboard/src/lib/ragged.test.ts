@@ -4,6 +4,7 @@ import {
   bestSectorPosition,
   listEntries,
   personalBestLapPosition,
+  sessionStartedUtcMs,
   teamRadioCaptures,
 } from "./ragged";
 
@@ -39,6 +40,27 @@ describe("teamRadioCaptures", () => {
     expect(teamRadioCaptures({ Captures: [{ Utc: 3 }, capture] })).toHaveLength(1);
     expect(teamRadioCaptures(null)).toEqual([]);
     expect(teamRadioCaptures("nope")).toEqual([]);
+  });
+});
+
+describe("sessionStartedUtcMs", () => {
+  const started = { Utc: "2024-12-08T13:03:35.033Z", SessionStatus: "Started" };
+  const restart = { Utc: "2024-12-08T13:40:00Z", SessionStatus: "Started" };
+  const track = { Utc: "2024-12-08T13:04:25.388Z", TrackStatus: "Yellow" };
+
+  it("reads array and keyed StatusSeries shapes", () => {
+    expect(sessionStartedUtcMs({ StatusSeries: [track, started] })).toBe(Date.parse(started.Utc));
+    expect(sessionStartedUtcMs({ StatusSeries: { "1": started } })).toBe(Date.parse(started.Utc));
+  });
+
+  it("takes the latest start so a red-flag restart re-anchors", () => {
+    expect(sessionStartedUtcMs({ StatusSeries: [started, restart] })).toBe(Date.parse(restart.Utc));
+  });
+
+  it("is null without a usable entry", () => {
+    expect(sessionStartedUtcMs(null)).toBeNull();
+    expect(sessionStartedUtcMs({ StatusSeries: [track] })).toBeNull();
+    expect(sessionStartedUtcMs({ StatusSeries: [{ SessionStatus: "Started", Utc: "junk" }] })).toBeNull();
   });
 });
 

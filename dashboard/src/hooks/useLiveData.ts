@@ -29,14 +29,35 @@ export function useLiveData() {
     sse.addEventListener("initial", (event) => {
       live.current = JSON.parse((event as MessageEvent).data) as State;
       buffer.current = [{ t: now(), snapshot: structuredClone(live.current) }];
+
+      // Re-seed the broadcast-sync anchors: the snapshot's clock is only
+      // Utc-anchored (no streamed receipt yet), and a start observed in a
+      // *different* session must not anchor this one.
+      const store = useDataStore.getState();
+      const clock = live.current.ExtrapolatedClock;
+      store.setLiveClock(clock ? { clock, receivedAt: null } : null);
+      const sessionKey = live.current.SessionInfo?.Key ?? null;
+      if (store.sessionStartedAt && store.sessionStartedAt.sessionKey !== sessionKey) {
+        store.setSessionStartedAt(null);
+      }
     });
 
     sse.addEventListener("update", (event) => {
-      const patch = JSON.parse((event as MessageEvent).data);
+      const patch = JSON.parse((event as MessageEvent).data) as Partial<State>;
+      const prevStatus = live.current.SessionStatus?.Status;
       live.current = deepMerge(live.current, patch) as State;
       buffer.current.push({ t: now(), snapshot: structuredClone(live.current) });
       buffer.current = trimBuffer(buffer.current, now(), useDataStore.getState().maxDelayMs);
-      useDataStore.getState().setLastEventAt(now());
+
+      const store = useDataStore.getState();
+      store.setLastEventAt(now());
+      const clock = live.current.ExtrapolatedClock;
+      if (patch.ExtrapolatedClock && clock) {
+        store.setLiveClock({ clock, receivedAt: now() });
+      }
+      if (patch.SessionStatus && prevStatus !== "Started" && live.current.SessionStatus?.Status === "Started") {
+        store.setSessionStartedAt({ at: now(), sessionKey: live.current.SessionInfo?.Key ?? null });
+      }
     });
 
     const tick = setInterval(() => {

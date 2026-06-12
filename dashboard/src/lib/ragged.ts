@@ -29,6 +29,21 @@ export function entryAt(value: unknown, index: number): unknown {
   return undefined;
 }
 
+/**
+ * Feed UTC (epoch ms) when `SessionStatus` last flipped to "Started", from
+ * `SessionData.StatusSeries`. Last wins so a red-flag restart re-anchors.
+ */
+export function sessionStartedUtcMs(sessionData: JsonValue | null | undefined): number | null {
+  if (!isDict(sessionData)) return null;
+  let started: number | null = null;
+  for (const entry of listEntries(sessionData["StatusSeries"])) {
+    if (!isDict(entry) || entry["SessionStatus"] !== "Started") continue;
+    const utc = typeof entry["Utc"] === "string" ? Date.parse(entry["Utc"]) : Number.NaN;
+    if (Number.isFinite(utc)) started = utc;
+  }
+  return started;
+}
+
 export type RadioCapture = { utc: string; racingNumber: string; path: string };
 
 /** Team radio captures, oldest first. */
