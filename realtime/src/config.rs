@@ -65,14 +65,31 @@ pub fn origins() -> Vec<String> {
 }
 
 /// Optional local replay endpoint (`F1_DEV_URL`); when set, the SignalR client
-/// connects here instead of the live F1 feed.
+/// connects here instead of the live F1 feed. Set-but-empty counts as unset:
+/// compose's `F1_DEV_URL=${F1_DEV_URL:-}` always defines the variable, and an
+/// empty value must mean "live feed", not "connect to nowhere".
 pub fn dev_url() -> Option<String> {
-    std::env::var("F1_DEV_URL").ok()
+    dev_url_from_env(std::env::var("F1_DEV_URL").ok())
+}
+
+fn dev_url_from_env(value: Option<String>) -> Option<String> {
+    value.filter(|url| !url.trim().is_empty())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::address_from_env;
+    use super::{address_from_env, dev_url_from_env};
+
+    #[test]
+    fn empty_dev_url_means_live() {
+        assert_eq!(dev_url_from_env(None), None);
+        assert_eq!(dev_url_from_env(Some(String::new())), None);
+        assert_eq!(dev_url_from_env(Some("  ".to_string())), None);
+        assert_eq!(
+            dev_url_from_env(Some("ws://replay:8000/ws".to_string())),
+            Some("ws://replay:8000/ws".to_string())
+        );
+    }
 
     #[test]
     fn explicit_address_wins() {

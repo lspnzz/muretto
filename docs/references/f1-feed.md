@@ -90,6 +90,11 @@ the checked-in recording.
   `State` so sessions never blend (`realtime/src/ingest/mod.rs`).
 - Wire casing is **PascalCase** end-to-end; `State` serializes with
   `rename_all = "PascalCase"` so SSE/JSON consumers see feed-native keys.
+- Snapshot and keyframe payloads carry a **`"_kf": true` marker at the topic
+  root** — transport metadata, not data. Ingest strips it in `decode`
+  (`realtime/src/ingest/mod.rs`): on keyed-map topics (`DriverList`) a
+  boolean among the entries would otherwise poison the whole typed merge and
+  the topic silently vanishes — live sessions lose all driver names.
 
 ## What downstream sees
 
@@ -107,8 +112,9 @@ deltas (`realtime/src/server/mod.rs`).
   `ws://0.0.0.0:8000/ws` (address hardcoded), ~10 Hz, loops nothing: when the
   file ends it closes the socket and realtime's supervisor reconnects, so the
   fixture effectively replays in a loop.
-- `simulator/fixtures/sample.jsonl` is a tiny **synthetic** session (2
-  drivers, HAM/LEC, 6 lines) used by tests and `scripts/smoke.sh`.
+- `simulator/fixtures/sample.jsonl` is a tiny **synthetic** session (5
+  drivers, 16 lines, real Silverstone track coordinates, the live feed's
+  `_kf` markers) used by tests and `scripts/smoke.sh`.
 
 ## Code map
 

@@ -3,7 +3,7 @@
 //! project's untyped merge (deep partials leaving siblings intact, arrays-as-
 //! objects, keyed add/update/remove, array-or-object initial shapes).
 
-use realtime::ingest::decompress;
+use realtime::ingest::{decode, decompress};
 use realtime::model::State;
 use serde_json::{Value, json};
 
@@ -145,6 +145,10 @@ fn replay_fixture_initial_then_partial_sequence() {
     let drivers = s.driver_list.as_ref().unwrap();
     assert_eq!(drivers["44"].tla, "HAM");
     assert_eq!(drivers["16"].team_name, "Ferrari");
+    // The fixture's snapshot carries the live feed's `_kf` keyframe marker;
+    // ingest must scrub it or the whole DriverList fails to deserialize.
+    assert_eq!(drivers.len(), 5);
+    assert!(!drivers.contains_key("_kf"));
 
     let timing = s.timing_data.as_ref().unwrap();
     assert_eq!(timing.lines["44"].position, "1");
@@ -179,15 +183,10 @@ fn replay_fixture_initial_then_partial_sequence() {
     assert_eq!(messages["2"].lap, Some(12)); // keyed append from the delta
 }
 
+/// Run a fixture payload through the real ingest transform (decompression and
+/// `_kf` scrubbing included), then fold it — the same path live data takes.
 fn apply_decoded(state: &mut State, topic: &str, data: Value) {
     let canonical = decompress::canonical_topic(topic);
-    let decoded = if decompress::is_compressed(topic) {
-        let encoded = data
-            .as_str()
-            .expect("compressed fixture payload is a string");
-        decompress::decompress(encoded).expect("fixture payload decodes")
-    } else {
-        data
-    };
+    let decoded = decode(topic, data).expect("fixture payload decodes");
     state.apply(canonical, decoded);
 }

@@ -1,10 +1,12 @@
 //! The ingest boundary: connect to the feed, fold updates into the shared
 //! [`State`], and publish each delta to SSE subscribers.
 //!
-//! `*.z` topics are decompressed and re-keyed here so nothing downstream ever
-//! sees a compressed or suffixed topic. A supervisor reconnects on disconnect
-//! and on session change (a new `SessionInfo.Name`), resetting state so a fresh
-//! session doesn't merge onto a stale one.
+//! `*.z` topics are decompressed and re-keyed here, and the `_kf` keyframe
+//! marker the live feed plants on snapshot payloads is stripped — nothing
+//! downstream ever sees a compressed topic, a suffixed topic name, or a
+//! transport marker. A supervisor reconnects on disconnect and on session
+//! change (a new `SessionInfo.Name`), resetting state so a fresh session
+//! doesn't merge onto a stale one.
 
 pub mod decompress;
 
@@ -141,16 +143,25 @@ async fn broadcast_full(state: &Arc<RwLock<State>>, tx: &broadcast::Sender<Strin
     }
 }
 
-/// Decompress `.z` topics; pass everything else through untouched.
-fn decode(topic: &str, data: Value) -> Result<Value> {
-    if decompress::is_compressed(topic) {
+/// Decompress `.z` topics and scrub the `_kf` keyframe marker.
+///
+/// Live snapshot payloads carry `"_kf": true` at the topic root. It's
+/// transport metadata, not data — and on keyed-map topics (`DriverList`) a
+/// boolean among the entries poisons the whole typed merge, which is exactly
+/// how driver names silently vanished from live sessions.
+pub fn decode(topic: &str, data: Value) -> Result<Value> {
+    let mut value = if decompress::is_compressed(topic) {
         let encoded = data
             .as_str()
             .ok_or_else(|| anyhow::anyhow!("compressed topic payload was not a string"))?;
-        decompress::decompress(encoded)
+        decompress::decompress(encoded)?
     } else {
-        Ok(data)
+        data
+    };
+    if let Value::Object(map) = &mut value {
+        map.remove("_kf");
     }
+    Ok(value)
 }
 
 /// Wall-clock epoch milliseconds (0 if the clock reads before the epoch).
@@ -165,6 +176,18 @@ fn now_ms() -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn decode_strips_keyframe_marker() {
+        let decoded = decode(
+            "DriverList",
+            json!({ "44": { "RacingNumber": "44", "Tla": "HAM" }, "_kf": true }),
+        )
+        .unwrap();
+
+        assert!(decoded.get("_kf").is_none());
+        assert_eq!(decoded["44"]["Tla"], json!("HAM"));
+    }
 
     #[tokio::test]
     async fn handle_stamps_liveness_for_data_topics() {
