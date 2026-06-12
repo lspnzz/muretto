@@ -148,11 +148,24 @@ fn replay_fixture_initial_then_partial_sequence() {
 
     let timing = s.timing_data.as_ref().unwrap();
     assert_eq!(timing.lines["44"].position, "1");
-    assert_eq!(timing.lines["16"].gap_to_leader, "+1.234");
+    assert_eq!(timing.lines["16"].gap_to_leader, "+1.102"); // updated by frame 1
+    // Deep segment patch landed without disturbing sector siblings.
+    assert_eq!(timing.lines["44"].sectors["0"].segments["3"].status, 2049);
+    assert_eq!(timing.lines["44"].sectors["0"].value, "28.143");
+    // NOR's pit sequence: in, new stint, out.
+    assert!(timing.lines["4"].pit_out);
+    assert!(!timing.lines["4"].in_pit);
+    let stints = &s.timing_app_data.as_ref().unwrap().lines["4"].stints;
+    assert_eq!(stints["1"].compound.as_deref(), Some("HARD"));
+
+    assert_eq!(s.session_status.as_ref().unwrap().status, "Started");
+    assert_eq!(s.lap_count.as_ref().unwrap().current_lap, 13);
+    let radio = s.team_radio.as_ref().unwrap();
+    assert_eq!(radio["Captures"].as_array().unwrap().len(), 3);
 
     let weather = s.weather_data.as_ref().unwrap();
-    assert_eq!(weather.track_temp, "31.8");
-    assert_eq!(weather.rainfall, "0");
+    assert_eq!(weather.track_temp, "32.1"); // updated by the weather frame
+    assert_eq!(weather.rainfall, "0"); // sibling untouched by the partial
 
     let position = s.position.as_ref().unwrap().position.last().unwrap();
     assert_eq!(position.entries["44"].x, 1400.0);
@@ -162,7 +175,8 @@ fn replay_fixture_initial_then_partial_sequence() {
     assert_eq!(car_data.entries[0].cars["44"].channels.speed, 295);
 
     let messages = &s.race_control_messages.as_ref().unwrap().messages;
-    assert_eq!(messages["0"].message, "GREEN LIGHT");
+    assert_eq!(messages["0"].message, "GREEN LIGHT - PIT EXIT OPEN");
+    assert_eq!(messages["2"].lap, Some(12)); // keyed append from the delta
 }
 
 fn apply_decoded(state: &mut State, topic: &str, data: Value) {

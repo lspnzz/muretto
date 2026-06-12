@@ -266,12 +266,12 @@ function SelectedInfo({
       </span>
       {ahead && (
         <span className="text-[11px] tabular-nums text-zinc-500">
-          ahead {ahead.tla} −{((marker.gapMs - ahead.gapMs) / 1000).toFixed(1)}s
+          ahead: {ahead.tla} −{((marker.gapMs - ahead.gapMs) / 1000).toFixed(1)}s
         </span>
       )}
       {behind && (
         <span className="text-[11px] tabular-nums text-zinc-500">
-          behind {behind.tla} +{((behind.gapMs - marker.gapMs) / 1000).toFixed(1)}s
+          behind: {behind.tla} +{((behind.gapMs - marker.gapMs) / 1000).toFixed(1)}s
         </span>
       )}
       <div className="mt-1 flex flex-col gap-0.5 text-xs tabular-nums">
