@@ -19,7 +19,7 @@ export function DelayControl() {
         onChange={(e) => setDelayMs(Number(e.target.value))}
         className="order-last col-span-2 w-full min-w-0 accent-zinc-300 sm:order-none sm:col-span-1 sm:w-40"
       />
-      <span className="w-10 justify-self-end tabular-nums text-zinc-300">
+      <span className="w-12 justify-self-end text-right tabular-nums text-zinc-300">
         {(delayMs / 1000).toFixed(1)}s
       </span>
     </label>

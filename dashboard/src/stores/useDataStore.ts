@@ -10,6 +10,7 @@ type DataStore = {
   lastEventAt: number | null;
   /** Replay delay in ms (0 = live). */
   delayMs: number;
+  /** Slider ceiling; also how much history the snapshot buffer retains. */
   maxDelayMs: number;
   setState: (state: State) => void;
   setConnected: (connected: boolean) => void;
@@ -22,7 +23,7 @@ export const useDataStore = create<DataStore>((set) => ({
   connected: false,
   lastEventAt: null,
   delayMs: 0,
-  maxDelayMs: 30_000,
+  maxDelayMs: 120_000,
   setState: (state) => set({ state }),
   setConnected: (connected) => set({ connected }),
   setLastEventAt: (lastEventAt) => set({ lastEventAt }),
