@@ -4,10 +4,7 @@ import { useLiveness } from "@/hooks/useLiveness";
 import { showsLiveData } from "@/lib/liveness";
 import { NoLiveSession, SessionEndedBanner } from "@/components/NoLiveSession";
 import { TrackMap } from "@/components/TrackMap";
-import { SessionStrip } from "./SessionStrip";
 import { TimingTower } from "./TimingTower";
-import { TrackStatusPill } from "./TrackStatusPill";
-import { WeatherStrip } from "./WeatherStrip";
 
 export function TimingsTab() {
   const liveness = useLiveness();
@@ -17,22 +14,13 @@ export function TimingsTab() {
   return (
     <>
       {liveness === "ended" && <SessionEndedBanner />}
-      <div className="flex w-full flex-col gap-2 p-2">
-        <div className="flex w-full flex-row items-center justify-between gap-4 overflow-hidden rounded-lg border border-zinc-800 p-2">
-          <SessionStrip />
-          <div className="hidden lg:block">
-            <WeatherStrip />
-          </div>
-          <TrackStatusPill />
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 p-4 xl:flex-row xl:items-start">
+        <div className="min-w-0 flex-1">
+          <TimingTower />
         </div>
-
-        <div className="flex w-full flex-col gap-2 2xl:flex-row">
-          <div className="overflow-x-auto">
-            <TimingTower />
-          </div>
-          <div className="min-h-72 flex-1 rounded-lg border border-zinc-800">
-            <TrackMap />
-          </div>
+        {/* DOM-last so the leaderboard leads on small screens; visually left on xl. */}
+        <div className="w-full xl:sticky xl:top-4 xl:order-first xl:w-96 xl:shrink-0">
+          <TrackMap />
         </div>
       </div>
     </>

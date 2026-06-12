@@ -1,14 +1,13 @@
 "use client";
 
-import { telemetry } from "@/lib/selectors";
 import { personalBestLapPosition } from "@/lib/ragged";
 import { useDataStore } from "@/stores/useDataStore";
 import type { Driver, Stint, TimingDataDriver } from "@/types";
 import { DriverTag } from "./DriverTag";
-import { DrsBox, GapCell, InfoCell, LapTimeCell, TyreCell } from "./cells";
+import { GapCell, LapTimeCell, TyreCell } from "./cells";
 import { SectorsCell } from "./SectorsCell";
 
-export const TIMING_GRID = "5.5rem 3.5rem 5.5rem 4rem 5rem 5.5rem auto";
+export const TIMING_GRID = "5.5rem 4.25rem 4.75rem 5.25rem auto";
 
 export function TimingRow({
   racingNumber,
@@ -22,17 +21,14 @@ export function TimingRow({
   position: number;
 }) {
   const state = useDataStore((s) => s.state);
-  const appLine = state.TimingAppData?.Lines?.[racingNumber];
-  const stints = orderedStints(appLine?.Stints);
-  const gridPos = appLine?.GridPos ? Number(appLine.GridPos) : null;
-  const channels = telemetry(state, racingNumber);
+  const stints = orderedStints(state.TimingAppData?.Lines?.[racingNumber]?.Stints);
   const hasFastest = personalBestLapPosition(state.TimingStats, racingNumber) === 1;
   const sidelined = Boolean(timing.KnockedOut || timing.Retired || timing.Stopped);
 
   return (
     <div
       className={[
-        "grid items-center gap-2 rounded-lg p-1.5 select-none",
+        "grid items-center gap-x-2.5 px-3 py-1.5 select-none",
         sidelined ? "opacity-50" : "",
         hasFastest ? "bg-violet-800/30" : "",
       ].join(" ")}
@@ -43,13 +39,7 @@ export function TimingRow({
         tla={driver?.Tla || racingNumber}
         teamColour={driver?.TeamColour}
       />
-      <DrsBox
-        drsValue={channels?.["45"]}
-        inPit={Boolean(timing.InPit)}
-        pitOut={Boolean(timing.PitOut)}
-      />
       <TyreCell stints={stints} />
-      <InfoCell timing={timing} gridPos={Number.isFinite(gridPos) ? gridPos : null} />
       <GapCell timing={timing} />
       <LapTimeCell timing={timing} hasFastest={hasFastest} />
       <SectorsCell

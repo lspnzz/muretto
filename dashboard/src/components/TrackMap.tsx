@@ -85,9 +85,9 @@ export function TrackMap() {
   const drawing = useMemo(() => buildDrawing(geometry, cars), [geometry, cars]);
 
   return (
-    <section className="border-b border-zinc-800">
-      <div className="flex items-center justify-between px-3 py-2">
-        <h2 className="text-xs uppercase tracking-wide text-zinc-500">Track</h2>
+    <section className="rounded-lg border border-zinc-800 p-4">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="text-xs uppercase tracking-wide text-zinc-500">Track map</h2>
         <span className="font-mono text-xs text-zinc-600">
           {latest?.Timestamp
             ? latest.Timestamp.slice(11, 19)
@@ -97,7 +97,7 @@ export function TrackMap() {
 
       {drawing ? (
         <svg
-          className="block h-56 w-full px-3 pb-3"
+          className="block h-auto w-full"
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           role="img"
           aria-label="Circuit map with current car positions"
@@ -138,12 +138,8 @@ export function TrackMap() {
           ))}
         </svg>
       ) : (
-        <div className="px-3 pb-4">
-          {loading ? (
-            <div className="text-sm text-zinc-600">Loading circuit map.</div>
-          ) : (
-            <div className="text-sm text-zinc-600">No circuit map.</div>
-          )}
+        <div className="text-sm text-zinc-600">
+          {loading ? "Loading circuit map." : "No circuit map."}
         </div>
       )}
     </section>
