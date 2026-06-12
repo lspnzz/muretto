@@ -88,6 +88,6 @@ mod tests {
         );
 
         let position = decompress(initial["Position.z"].as_str().unwrap()).unwrap();
-        assert_eq!(position["Position"][0]["Entries"]["16"]["X"], json!(980));
+        assert_eq!(position["Position"][0]["Entries"]["16"]["X"], json!(1141));
     }
 }

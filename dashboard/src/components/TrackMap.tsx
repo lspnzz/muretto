@@ -35,8 +35,10 @@ type TrackPoint = RawPoint & {
   color: string;
 };
 
-const WIDTH = 100;
-const HEIGHT = 64;
+// Wide broadcast-strip canvas: the panel spans the container above the
+// timing tower, and the projection letterboxes the circuit inside it.
+const WIDTH = 200;
+const HEIGHT = 80;
 const PAD = 6;
 
 export function TrackMap() {
@@ -97,7 +99,7 @@ export function TrackMap() {
 
       {drawing ? (
         <svg
-          className="block h-auto w-full"
+          className="mx-auto block h-auto max-h-96 w-full"
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           role="img"
           aria-label="Circuit map with current car positions"
@@ -129,7 +131,7 @@ export function TrackMap() {
               <circle r="2.4" fill={point.color} className="stroke-black" strokeWidth="0.8" />
               <text
                 x="3.6"
-                y="-3"
+                y={point.labelDy}
                 className="fill-zinc-100 font-mono text-[4px] font-semibold"
               >
                 {point.label}
@@ -204,9 +206,32 @@ function buildDrawing(geometry: CircuitGeometry | null, cars: TrackPoint[]) {
 
   return {
     trackPath: pathFor(rotatedOutline.map((point) => project(point, bounds))),
-    cars: rotatedCars.map((point) => ({ ...point, ...project(point, bounds) })),
+    cars: staggerLabels(rotatedCars.map((point) => ({ ...point, ...project(point, bounds) }))),
     corners: rotatedCorners.map((corner) => ({ ...corner, ...project(corner, bounds) })),
   };
+}
+
+// Approximate label footprint in viewBox units, for collision checks.
+const LABEL_W = 11;
+const LABEL_H = 4.5;
+
+/**
+ * Nose-to-tail cars get stacked labels instead of overprinted ones. Cars
+ * arrive in leaderboard order, so the car ahead keeps the prime spot and
+ * followers shift down a line at a time.
+ */
+function staggerLabels<T extends RawPoint>(cars: T[]): Array<T & { labelDy: number }> {
+  const placed: RawPoint[] = [];
+  return cars.map((car) => {
+    let labelDy = -3;
+    const collides = () =>
+      placed.some(
+        (p) => Math.abs(p.x - car.x) < LABEL_W && Math.abs(p.y - (car.y + labelDy)) < LABEL_H,
+      );
+    while (collides()) labelDy += LABEL_H;
+    placed.push({ x: car.x, y: car.y + labelDy });
+    return { ...car, labelDy };
+  });
 }
 
 function rotateAll<T extends RawPoint>(points: T[], reference: RawPoint[], degrees: number): T[] {
@@ -243,15 +268,19 @@ function boundsFor(points: RawPoint[]) {
   };
 }
 
+/**
+ * Fit the circuit into the canvas without distorting it: one uniform scale
+ * (the tighter axis wins), centered on both axes. Y flips — feed north is up,
+ * SVG y grows down.
+ */
 function project(point: RawPoint, bounds: ReturnType<typeof boundsFor>) {
   const spanX = bounds.maxX - bounds.minX;
   const spanY = bounds.maxY - bounds.minY;
+  const scale = Math.min((WIDTH - PAD * 2) / spanX, (HEIGHT - PAD * 2) / spanY);
+  if (!Number.isFinite(scale)) return { x: WIDTH / 2, y: HEIGHT / 2 };
   return {
-    x: spanX === 0 ? WIDTH / 2 : PAD + ((point.x - bounds.minX) / spanX) * (WIDTH - PAD * 2),
-    y:
-      spanY === 0
-        ? HEIGHT / 2
-        : HEIGHT - PAD - ((point.y - bounds.minY) / spanY) * (HEIGHT - PAD * 2),
+    x: (WIDTH - spanX * scale) / 2 + (point.x - bounds.minX) * scale,
+    y: HEIGHT - (HEIGHT - spanY * scale) / 2 - (point.y - bounds.minY) * scale,
   };
 }
 

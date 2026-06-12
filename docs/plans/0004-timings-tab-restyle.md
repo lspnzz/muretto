@@ -67,3 +67,13 @@ map bolted on the right at 2xl. Three problems:
 - Verified offline against the replay fixture (five-driver leaderboard;
   map dots for HAM/LEC only, as the fixture carries no `Position.z` for
   the rest).
+- Follow-up (2026-06-12, post-merge): dropping the names went too far —
+  the ask was names *instead of* numbers. The driver cell now shows the
+  surname in team colour (`displayName` fallback chain in
+  `lib/selectors.ts`); TLA and racing number both stay out. The fixture
+  gained real Silverstone-outline `Position.z` coordinates (all five cars,
+  four frames, so the map shows movement offline) and the `DriverList`
+  name fields; map labels stagger when cars run nose-to-tail. The map then
+  moved above the tower as a full-width panel — the wide canvas required
+  an aspect-preserving projection (uniform scale, centered) where the old
+  one stretched the circuit to fill the box.

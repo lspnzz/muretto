@@ -14,14 +14,9 @@ export function TimingsTab() {
   return (
     <>
       {liveness === "ended" && <SessionEndedBanner />}
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 p-4 xl:flex-row xl:items-start">
-        <div className="min-w-0 flex-1">
-          <TimingTower />
-        </div>
-        {/* DOM-last so the leaderboard leads on small screens; visually left on xl. */}
-        <div className="w-full xl:sticky xl:top-4 xl:order-first xl:w-96 xl:shrink-0">
-          <TrackMap />
-        </div>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 p-4">
+        <TrackMap />
+        <TimingTower />
       </div>
     </>
   );
