@@ -1,0 +1,14 @@
+# Weekly doc gardening: same gates as PR CI, plus external links — catches
+# rotted URLs (F1 endpoints, MultiViewer, article links) that --offline skips.
+name: Maintenance
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  docs:
+    uses: ./.github/workflows/docs-checks.yml
+    with:
+      check_external: true

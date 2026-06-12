@@ -6,7 +6,8 @@ pub const F1_SIGNALR_URL: &str = "livetiming.formula1.com/signalrcore";
 /// SignalR hub name.
 pub const F1_HUB: &str = "Streaming";
 
-/// Topics subscribed to on the F1 feed. `.z` topics are zlib-compressed.
+/// Topics subscribed to on the F1 feed. `.z` topics are base64'd raw DEFLATE
+/// (not zlib) — see `docs/references/f1-feed.md`.
 pub const TOPICS: &[&str] = &[
     "Heartbeat",
     "AudioStreams",
