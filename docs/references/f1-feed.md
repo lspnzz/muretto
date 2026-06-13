@@ -95,8 +95,11 @@ the checked-in recording.
 
 `realtime` re-exposes the feed as SSE (`/api/realtime`): one `initial` event
 (full `State`) on connect, then `update` events of `{"<Topic>": <delta>}`. A
-lagging subscriber is resynced with a fresh `initial` instead of dropping
-deltas (`realtime/src/server/mod.rs`).
+mid-stream `initial` means **replace your state, don't fold** — it's sent to
+a lagging subscriber instead of dropping deltas, and to everyone after a
+session reset (feed reconnect / new session), where folding would leave
+removed keys behind (`realtime/src/server/mod.rs`,
+`realtime/src/ingest/mod.rs::broadcast_full`).
 
 ## Recording and replaying sessions
 

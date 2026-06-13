@@ -28,6 +28,12 @@ overlaid directly.
   to the upcoming-race info). Any non-OK response or missing outline sets the
   geometry to `null` and the **map simply doesn't render** — API trouble must
   never break the leaderboard.
+- Besides the outline and `corners`, the map reads `marshalSectors`
+  (`number` + `trackPosition` in outline space). These are the "TRACK SECTOR
+  n" numbers race control uses, so the outline can be split at marshal-post
+  boundaries and the affected stretch painted yellow
+  (`dashboard/src/lib/flags.ts`). Missing `marshalSectors` degrades cleanly:
+  whole-track states still render, sector yellows just don't localize.
 
 ## Courtesy rules
 
