@@ -7,6 +7,7 @@
 //! session doesn't merge onto a stale one.
 
 pub mod decompress;
+mod driver_list;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -111,6 +112,7 @@ async fn apply_initial(
             }
         }
     }
+    backfill_driver_list(state, tx, false).await;
     // State was replaced, not patched — connected clients must replace too,
     // so this goes out as `initial` rather than a foldable `update`.
     broadcast_full(state, tx).await;
@@ -138,6 +140,42 @@ async fn handle(
     if let Ok(payload) = serde_json::to_string(&Value::Object(obj)) {
         // Err just means no subscribers; that's fine.
         let _ = tx.send(Broadcast::Update(payload));
+    }
+
+    if matches!(topic, "DriverList" | "SessionInfo") {
+        backfill_driver_list(state, tx, true).await;
+    }
+}
+
+async fn backfill_driver_list(
+    state: &Arc<RwLock<State>>,
+    tx: &broadcast::Sender<Broadcast>,
+    broadcast: bool,
+) {
+    let Some(path) = driver_list::backfill_path(&*state.read().await) else {
+        return;
+    };
+
+    let fallback = match driver_list::fetch_archive(&path).await {
+        Ok(Some(fallback)) => fallback,
+        Ok(None) => return,
+        Err(e) => {
+            warn!(%path, ?e, "failed to fetch archive DriverList fallback");
+            return;
+        }
+    };
+
+    {
+        let mut guard = state.write().await;
+        guard.apply("DriverList", fallback.clone());
+    }
+
+    if broadcast {
+        let mut obj = Map::with_capacity(1);
+        obj.insert("DriverList".to_string(), fallback);
+        if let Ok(payload) = serde_json::to_string(&Value::Object(obj)) {
+            let _ = tx.send(Broadcast::Update(payload));
+        }
     }
 }
 

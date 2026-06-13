@@ -90,6 +90,11 @@ the checked-in recording.
   `State` so sessions never blend (`realtime/src/ingest/mod.rs`).
 - Wire casing is **PascalCase** end-to-end; `State` serializes with
   `rename_all = "PascalCase"` so SSE/JSON consumers see feed-native keys.
+- If a live snapshot has timing lines but no usable driver names, ingest
+  backfills `DriverList` identity fields from
+  `https://livetiming.formula1.com/static/{SessionInfo.Path}DriverList.jsonStream`.
+  That archive is timestamp-prefixed JSON lines; muretto imports only identity
+  fields, not `Line`, so live timing order still comes from `TimingData`.
 
 ## What downstream sees
 
