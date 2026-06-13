@@ -5,7 +5,8 @@ import type { JsonValue } from "@/types/serde_json/JsonValue";
 import type { Sector, Segment } from "@/types";
 
 // Mini-sector segment status codes (docs/references/strategy-screens.md).
-function segmentClass(status: number): string {
+// Exported: the driver tab renders the same semantics at detail size.
+export function segmentClass(status: number): string {
   switch (status) {
     case 2049:
       return "bg-emerald-500"; // personal best
@@ -37,13 +38,7 @@ export function SectorsCell({
   return (
     <div className="flex gap-2.5">
       {ordered.map(({ key, sector }, index) => {
-        const valueCls = sector.OverallFastest
-          ? "text-violet-500"
-          : sector.PersonalFastest
-            ? "text-emerald-500"
-            : sector.Value
-              ? ""
-              : "text-zinc-500";
+        const valueCls = sectorValueClass(sector);
         const best = bestSectorValue(timingStats, racingNumber, index);
         const bestIsOverall = bestSectorPosition(timingStats, racingNumber, index) === 1;
 
@@ -79,7 +74,18 @@ export function SectorsCell({
   );
 }
 
-function segmentList(segments: { [key: string]: Segment | undefined }): Segment[] {
+/** Sector-value colour per the personal/overall-fastest convention. */
+export function sectorValueClass(sector: Sector): string {
+  return sector.OverallFastest
+    ? "text-violet-500"
+    : sector.PersonalFastest
+      ? "text-emerald-500"
+      : sector.Value
+        ? ""
+        : "text-zinc-500";
+}
+
+export function segmentList(segments: { [key: string]: Segment | undefined }): Segment[] {
   return Object.keys(segments)
     .sort((a, b) => Number(a) - Number(b))
     .flatMap((key) => (segments[key] ? [segments[key]] : []));

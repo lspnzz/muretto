@@ -38,7 +38,7 @@ F1_DEV_URL=ws://replay:8000/ws docker compose --profile dev up --build
 - `curl -N http://127.0.0.1:4000/api/realtime` → `event: initial` immediately,
   then `event: update` at ~10 Hz
 - Dashboard shows a five-driver leaderboard (HAM, LEC, VER, NOR, ALO). The
-  fixture is 47 frames; replay closes at EOF and realtime reconnects ~2s
+  fixture is 50 frames; replay closes at EOF and realtime reconnects ~2s
   later, so it loops forever.
 - Each loop walks the flag sequence: yellow in sector 2 → double yellow in
   sector 8 → clear → safety car → VSC → VSC ending → red flag → green. The

@@ -171,8 +171,13 @@ fn replay_fixture_initial_then_partial_sequence() {
     assert_eq!(position.entries["44"].x, 6955.0);
     assert_eq!(position.entries["16"].y, 11018.0);
 
+    // CarData is replace-only: the state holds the *last* frame's batch,
+    // which carries telemetry for all five drivers (plan 0005).
     let car_data = s.car_data.as_ref().unwrap();
-    assert_eq!(car_data.entries[0].cars["44"].channels.speed, 295);
+    assert_eq!(car_data.entries[0].cars.len(), 5);
+    assert_eq!(car_data.entries[0].cars["44"].channels.speed, 221);
+    let speeds = &timing.lines["44"].speeds;
+    assert_eq!(speeds.st.value, "322"); // wire key "ST", not PascalCase "St"
 
     let messages = &s.race_control_messages.as_ref().unwrap().messages;
     assert_eq!(messages["0"].message, "GREEN LIGHT - PIT EXIT OPEN");
@@ -187,6 +192,8 @@ fn replay_fixture_initial_then_partial_sequence() {
     assert_eq!(messages["7"].category, "SafetyCar");
     assert_eq!(messages["11"].flag.as_deref(), Some("RED"));
     assert_eq!(messages["12"].message, "GREEN LIGHT - PIT EXIT OPEN");
+    // 2026 overtake-mode badge: appended after the restart (plan 0005).
+    assert_eq!(messages["13"].message, "OVERTAKE ENABLED");
 }
 
 fn apply_decoded(state: &mut State, topic: &str, data: Value) {
