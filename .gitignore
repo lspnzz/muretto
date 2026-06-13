@@ -15,8 +15,9 @@ dashboard/.turbo/
 !.env.example
 compose.env
 
-# Recorded F1 sessions (replay fixtures are opt-in, kept under tests/fixtures)
+# Recorded F1 sessions (replay fixtures are opt-in under simulator/fixtures)
 *.data.*
+simulator/recordings/
 
 # Local Claude Code dev config (personal, not shared)
 .claude/settings.local.json

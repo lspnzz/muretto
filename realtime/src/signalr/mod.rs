@@ -303,7 +303,7 @@ impl SignalrClient {
 /// Parse a SignalR message frame into feed updates, if it carries any.
 /// Core shape: `{ "type": 1, "target": "feed", "arguments": [topic, data, timestamp] }`.
 /// Legacy replay shape: `{ "M": [ { "A": [topic, data, timestamp] }, ... ] }`.
-fn parse_feed(text: &str) -> Option<Vec<UpdateArgs>> {
+pub fn parse_feed(text: &str) -> Option<Vec<UpdateArgs>> {
     parse_core_feed(text).or_else(|| parse_legacy_feed(text))
 }
 

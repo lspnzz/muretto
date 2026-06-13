@@ -2,6 +2,7 @@
 //!
 //! Usage:
 //!   simulator save   <file>   # connect to the live feed and record to <file>
+//!   simulator save-next <file> # wait out an archived snapshot, then record
 //!   simulator replay <file>   # serve the recording over ws for F1_DEV_URL
 //!
 //! Recording format: one JSON message per line. The first line is the initial
@@ -27,9 +28,10 @@ async fn main() -> anyhow::Result<()> {
 
     match (command.as_deref(), path) {
         (Some("save"), Some(path)) => save::save(&path).await,
+        (Some("save-next"), Some(path)) => save::save_next(&path).await,
         (Some("replay"), Some(path)) => replay::replay(&path).await,
         _ => {
-            eprintln!("usage: simulator <save|replay> <file>");
+            eprintln!("usage: simulator <save|save-next|replay> <file>");
             std::process::exit(2);
         }
     }
