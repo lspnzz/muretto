@@ -8,6 +8,7 @@ import type { TrackMapFlags } from "@/lib/flags";
 import { orderedDrivers } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import type { PositionCar, State } from "@/types";
+import type { PositionEntry } from "@/types/PositionEntry";
 import type { UpcomingRace } from "@/types/UpcomingRace";
 
 type CircuitGeometry = {
@@ -46,6 +47,8 @@ type TrackPoint = RawPoint & {
 const WIDTH = 200;
 const HEIGHT = 80;
 const PAD = 6;
+const OPENF1_POLL_MS = 2_000;
+const OPENF1_LOOKBACK_MS = 10_000;
 
 // Hexes match TRACK_STATUS in lib/trackStatus.ts (amber-400 / red-500).
 const TRACK_DEFAULT = "#3f3f46";
@@ -82,8 +85,9 @@ function trackColorFor(flags: TrackMapFlags): string {
  */
 export function TrackMap({ highlight }: { highlight?: string }) {
   const state = useDataStore((s) => s.state);
+  const delayMs = useDataStore((s) => s.delayMs);
   const { race } = useUpcomingRace();
-  const latest = state.Position?.Position.at(-1);
+  const nativeLatest = state.Position?.Position.at(-1) ?? null;
   const { circuitKey, year } = useMemo(() => circuitRef(state, race), [state, race]);
   const [geometry, setGeometry] = useState<CircuitGeometry | null>(null);
   const [loading, setLoading] = useState(false);
@@ -114,8 +118,16 @@ export function TrackMap({ highlight }: { highlight?: string }) {
   }, [circuitKey, year]);
 
   const rows = orderedDrivers(state);
+  const driverKey = rows.map((row) => row.racingNumber).join(",");
+  const fallbackLatest = useOpenF1PositionFallback({
+    driverKey,
+    enabled: !nativeLatest && delayMs === 0,
+    sessionKey: state.SessionInfo?.Key ?? 0,
+  });
+  const latest = nativeLatest ?? fallbackLatest;
   const rowByNumber = new Map(rows.map((row) => [row.racingNumber, row]));
-  const cars: TrackPoint[] = Object.entries(latest?.Entries ?? {})
+  const latestEntries: Record<string, PositionCar | undefined> = latest?.Entries ?? {};
+  const cars: TrackPoint[] = Object.entries(latestEntries)
     .flatMap(([racingNumber, car]) => carPoint(racingNumber, car, rowByNumber))
     .sort((a, b) => {
       // Leaderboard order; the highlighted car draws last so it sits on top.
@@ -230,6 +242,79 @@ export function TrackMap({ highlight }: { highlight?: string }) {
       )}
     </section>
   );
+}
+
+function useOpenF1PositionFallback({
+  driverKey,
+  enabled,
+  sessionKey,
+}: {
+  driverKey: string;
+  enabled: boolean;
+  sessionKey: number;
+}) {
+  const [position, setPosition] = useState<PositionEntry | null>(null);
+  const [disabledKey, setDisabledKey] = useState<string | null>(null);
+  const fallbackKey = sessionKey && driverKey ? `${sessionKey}:${driverKey}` : "";
+
+  useEffect(() => {
+    if (!enabled || !fallbackKey || disabledKey === fallbackKey) {
+      setPosition(null);
+      return;
+    }
+
+    let stopped = false;
+    let controller: AbortController | null = null;
+
+    async function load() {
+      controller?.abort();
+      controller = new AbortController();
+      const params = new URLSearchParams({
+        drivers: driverKey,
+        lookbackMs: String(OPENF1_LOOKBACK_MS),
+        sessionKey: String(sessionKey),
+      });
+
+      try {
+        const response = await fetch(`/api/openf1/location?${params}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+
+        if (stopped) return;
+        if (response.status === 204 || response.status === 401 || response.status === 403) {
+          setDisabledKey(fallbackKey);
+          setPosition(null);
+          return;
+        }
+        if (!response.ok) return;
+
+        const body = (await response.json()) as unknown;
+        setPosition(isPositionEntry(body) ? body : null);
+      } catch (error: unknown) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setPosition(null);
+        }
+      }
+    }
+
+    load();
+    const interval = window.setInterval(load, OPENF1_POLL_MS);
+
+    return () => {
+      stopped = true;
+      controller?.abort();
+      window.clearInterval(interval);
+    };
+  }, [disabledKey, driverKey, enabled, fallbackKey, sessionKey]);
+
+  return position;
+}
+
+function isPositionEntry(value: unknown): value is PositionEntry {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as Partial<PositionEntry>;
+  return typeof entry.Timestamp === "string" && Boolean(entry.Entries);
 }
 
 function circuitRef(state: State, race: UpcomingRace | undefined) {
