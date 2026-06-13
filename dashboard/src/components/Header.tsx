@@ -4,72 +4,97 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { useUpcomingRace } from "@/hooks/useUpcomingRace";
-import { TRACK_STATUS_COLOR } from "@/lib/trackStatus";
+import { useLiveness } from "@/hooks/useLiveness";
+import { showsLiveData, type Liveness } from "@/lib/liveness";
 import { useDataStore } from "@/stores/useDataStore";
-import type { SessionInfo } from "@/types/SessionInfo";
-import type { UpcomingRace } from "@/types/UpcomingRace";
 import { DelayControl } from "./DelayControl";
+
+const TABS = [
+  { href: "/", label: "Overview" },
+  { href: "/strategy", label: "Strategy" },
+  { href: "/timings", label: "Timings" },
+  { href: "/driver", label: "Driver" },
+] as const;
 
 export function Header() {
   const state = useDataStore((s) => s.state);
   const connected = useDataStore((s) => s.connected);
-  const { race } = useUpcomingRace();
+  const liveness = useLiveness();
   const pathname = usePathname();
 
   const session = state.SessionInfo;
   const lap = state.LapCount;
-  const trackStatus = state.TrackStatus?.Status ?? "";
-  const statusColor = TRACK_STATUS_COLOR[trackStatus] ?? "bg-zinc-600";
-  const headerSession = sessionHeader(session, race);
+  const showLive = showsLiveData(liveness);
+  const title = showLive ? session?.Meeting?.Name?.trim() : undefined;
+  const detail = showLive ? sessionCode(session?.Name || session?.Type) : "";
 
   return (
-    <header className="flex flex-wrap items-start gap-x-5 gap-y-3 border-b border-zinc-800 px-4 py-3">
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex shrink-0 items-center gap-2">
-            <span className={`inline-block h-3 w-3 rounded-full ${statusColor}`} aria-hidden />
-            <span className="text-lg font-semibold">muretto</span>
+    <header className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-zinc-800 px-4 py-2.5">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="text-lg font-semibold">muretto</span>
+        <StatusBadge connected={connected} liveness={liveness} />
+        {title && (
+          <div className="hidden min-w-0 items-baseline gap-2 text-sm md:flex">
+            <span className="truncate font-medium text-zinc-300">{title}</span>
+            {detail && (
+              <span className="shrink-0 font-mono text-xs uppercase tracking-wide text-zinc-500">
+                {detail}
+              </span>
+            )}
           </div>
-
-          {headerSession && (
-            <div className="flex min-w-0 items-baseline gap-2 text-sm">
-              <span className="truncate font-medium text-zinc-300">{headerSession.title}</span>
-              {headerSession.detail && (
-                <span className="shrink-0 font-mono text-xs uppercase tracking-wide text-zinc-500">
-                  {headerSession.detail}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 text-sm">
-          <span
-            className={`inline-block h-2 w-2 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`}
-            aria-hidden
-          />
-          <span className="text-zinc-400">{connected ? "online" : "offline"}</span>
-        </div>
+        )}
       </div>
 
-      <nav className="hidden items-center gap-3 pt-1 text-sm sm:flex" aria-label="Dashboard views">
-        <Link className={navLinkClass(pathname === "/")} href="/">
-          Live
-        </Link>
-        <Link className={navLinkClass(pathname === "/strategy")} href="/strategy">
-          Strategy
-        </Link>
+      <nav className="order-last w-full sm:order-none sm:ml-auto sm:w-auto" aria-label="Dashboard views">
+        <div className="grid grid-cols-4 gap-1 rounded-md border border-zinc-800 bg-zinc-950 p-1 sm:flex">
+          {TABS.map((tab) => {
+            const active = pathname === tab.href;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                aria-current={active ? "page" : undefined}
+                className={[
+                  "rounded-sm px-3 py-1.5 text-center text-sm transition-colors",
+                  active
+                    ? "bg-zinc-100 font-medium text-zinc-950"
+                    : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200",
+                ].join(" ")}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
-      {lap && lap.TotalLaps > 0 && (
-        <div className="text-sm tabular-nums text-zinc-400 sm:pt-1">
+      {showLive && lap && lap.TotalLaps > 0 && (
+        <div className="text-sm tabular-nums text-zinc-400">
           Lap {lap.CurrentLap}/{lap.TotalLaps}
         </div>
       )}
 
       <SettingsMenu />
     </header>
+  );
+}
+
+function StatusBadge({ connected, liveness }: { connected: boolean; liveness: Liveness }) {
+  const badge = !connected
+    ? { dot: "bg-red-500", text: "offline" }
+    : liveness === "live"
+      ? { dot: "bg-green-500", text: "LIVE" }
+      : liveness === "ended"
+        ? { dot: "bg-zinc-500", text: "session ended" }
+        : liveness === "stale"
+          ? { dot: "bg-amber-400", text: "no live session" }
+          : { dot: "bg-zinc-600", text: "no session" };
+
+  return (
+    <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
+      <span className={`inline-block h-2 w-2 rounded-full ${badge.dot}`} aria-hidden />
+      {badge.text}
+    </span>
   );
 }
 
@@ -98,7 +123,7 @@ function SettingsMenu() {
   }, [open]);
 
   return (
-    <div ref={menuRef} className="relative">
+    <div ref={menuRef} className="relative ml-auto sm:ml-0">
       <button
         type="button"
         aria-controls="header-settings-menu"
@@ -124,39 +149,6 @@ function SettingsMenu() {
       )}
     </div>
   );
-}
-
-function navLinkClass(active: boolean) {
-  return [
-    "underline-offset-4 transition-colors hover:text-zinc-100",
-    active ? "text-zinc-100 underline decoration-zinc-500" : "text-zinc-500",
-  ].join(" ");
-}
-
-function sessionHeader(session: SessionInfo | null | undefined, race: UpcomingRace | undefined) {
-  const liveSession = session;
-
-  if (liveSession) {
-    const liveTitle = liveSession.Meeting?.Name?.trim();
-
-    if (liveTitle) {
-      return {
-        title: liveTitle,
-        detail: sessionCode(liveSession.Name || liveSession.Type),
-      };
-    }
-  }
-
-  if (!race) return null;
-
-  const nextSession =
-    race.sessions.find((item) => new Date(item.iso).getTime() >= Date.now()) ??
-    race.sessions.at(-1);
-
-  return {
-    title: race.raceName,
-    detail: sessionCode(nextSession?.name ?? "Race"),
-  };
 }
 
 function sessionCode(name: string | undefined) {

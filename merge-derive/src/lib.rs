@@ -37,7 +37,10 @@ pub fn derive_merge(input: TokenStream) -> TokenStream {
         if field_is_skipped(&field.attrs) {
             continue;
         }
-        let ident = field.ident.as_ref().unwrap();
+        let ident = field
+            .ident
+            .as_ref()
+            .expect("named fields always have idents");
         let key = field_rename(&field.attrs)
             .unwrap_or_else(|| apply_rename_all(&ident.to_string(), rename_all.as_deref()));
         arms.push(quote! {

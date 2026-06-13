@@ -1,0 +1,36 @@
+# docs/ — the repo's knowledge base
+
+[AGENTS.md](../AGENTS.md) is the entry point; this directory is where the
+detail lives. The [root README](../README.md) covers the human story
+(architecture narrative, deploy, cost).
+
+## Index
+
+| Doc | Read this when… |
+| --- | ---------------- |
+| [design/core-beliefs.md](design/core-beliefs.md) | …changing architecture, adding a dependency, or wondering why something is deliberately missing |
+| [references/f1-feed.md](references/f1-feed.md) | …touching `realtime/src/signalr`, `ingest`, `model`, or the simulator — protocols, frame shapes, the deflate gotcha |
+| [references/multiviewer-circuits.md](references/multiviewer-circuits.md) | …touching the track map or the circuits proxy route |
+| [references/strategy-screens.md](references/strategy-screens.md) | …touching the Strategy or Timings tabs — circle-of-doom geometry, pit-loss table, timing-page colour conventions |
+| [plans/](plans/) | …starting (or resuming) any multi-session piece of work |
+
+## Conventions
+
+- **Plans** (`plans/NNNN-slug.md`) are first-class artifacts. Each starts with a
+  status blockquote — `draft` → `approved <date>` → `implemented` — and, once
+  implemented, records **as-built deltas** so the plan stays honest about what
+  actually happened ([0001](plans/0001-typed-rebuild-and-self-hosting.md) is the
+  model). Plans capture the *why*; the README and code capture the *what*.
+- **Design docs** (`design/`) hold beliefs and invariants that rarely change.
+  Each belief states *what / why / how it's enforced* — and is honest when
+  enforcement is review-only.
+- **References** (`references/`) describe external systems we don't control:
+  wire shapes, quirks, and pointers to the code that speaks to them. They are
+  written for an agent landing cold — short, exact, and link-heavy.
+
+## Mechanical enforcement
+
+CI keeps this tree trustworthy: `scripts/checks.sh` gates AGENTS.md length and
+source-file size, and lychee verifies every relative link in the repo's
+markdown on each PR (external links re-checked weekly). If you move or rename
+a doc, CI fails until the links are fixed.

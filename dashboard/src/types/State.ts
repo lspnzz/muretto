@@ -14,4 +14,12 @@ import type { TimingData } from "./TimingData";
 import type { TrackStatus } from "./TrackStatus";
 import type { WeatherData } from "./WeatherData";
 
-export type State = { Heartbeat: Heartbeat | null, ExtrapolatedClock: ExtrapolatedClock | null, TrackStatus: TrackStatus | null, SessionStatus: SessionStatus | null, SessionInfo: SessionInfo | null, LapCount: LapCount | null, WeatherData: WeatherData | null, DriverList: { [key in string]?: Driver } | null, TimingData: TimingData | null, TimingAppData: TimingAppData | null, RaceControlMessages: RaceControlMessages | null, CarData: CarData | null, Position: Position | null, TimingStats: JsonValue | null, TopThree: JsonValue | null, SessionData: JsonValue | null, TeamRadio: JsonValue | null, ChampionshipPrediction: JsonValue | null, };
+export type State = { Heartbeat: Heartbeat | null, ExtrapolatedClock: ExtrapolatedClock | null, TrackStatus: TrackStatus | null, SessionStatus: SessionStatus | null, SessionInfo: SessionInfo | null, LapCount: LapCount | null, WeatherData: WeatherData | null, DriverList: { [key in string]?: Driver } | null, TimingData: TimingData | null, TimingAppData: TimingAppData | null, RaceControlMessages: RaceControlMessages | null, CarData: CarData | null, Position: Position | null, TimingStats: JsonValue | null, TopThree: JsonValue | null, SessionData: JsonValue | null, TeamRadio: JsonValue | null, ChampionshipPrediction: JsonValue | null, 
+/**
+ * Epoch ms when the last *streamed* frame (excluding `Heartbeat`) was
+ * applied. `None` until the feed proves a session is producing data —
+ * the subscribe snapshot alone never sets it, so clients can tell a
+ * held-over snapshot from a live stream. Rides full snapshots only;
+ * per-topic deltas never carry it (egress stays delta-sized).
+ */
+LastFeedEventMs: number | null, };

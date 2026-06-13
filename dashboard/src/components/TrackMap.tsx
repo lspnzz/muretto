@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { useUpcomingRace } from "@/hooks/useUpcomingRace";
+import { marshalSegments, sliceSegment, trackMapFlags } from "@/lib/flags";
+import type { TrackMapFlags } from "@/lib/flags";
 import { orderedDrivers } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import type { PositionCar, State } from "@/types";
@@ -14,6 +16,10 @@ type CircuitGeometry = {
   x?: number[];
   y?: number[];
   corners?: Array<{
+    number: number;
+    trackPosition: { x: number; y: number };
+  }>;
+  marshalSectors?: Array<{
     number: number;
     trackPosition: { x: number; y: number };
   }>;
@@ -35,11 +41,48 @@ type TrackPoint = RawPoint & {
   color: string;
 };
 
-const WIDTH = 100;
-const HEIGHT = 64;
+// Wide broadcast-strip canvas: the panel spans the container above the
+// timing tower, and the projection letterboxes the circuit inside it.
+const WIDTH = 200;
+const HEIGHT = 80;
 const PAD = 6;
 
-export function TrackMap() {
+// Hexes match TRACK_STATUS in lib/trackStatus.ts (amber-400 / red-500).
+const TRACK_DEFAULT = "#3f3f46";
+const TRACK_CAUTION = "#fbbf24";
+const TRACK_RED = "#ef4444";
+
+const FLAG_BADGE: Partial<
+  Record<TrackMapFlags["kind"], { label: string; fill: string; text: string }>
+> = {
+  yellow: { label: "YELLOW FLAG", fill: TRACK_CAUTION, text: "#18181b" },
+  sc: { label: "SAFETY CAR", fill: TRACK_CAUTION, text: "#18181b" },
+  vsc: { label: "VSC DEPLOYED", fill: TRACK_CAUTION, text: "#18181b" },
+  "vsc-ending": { label: "VSC ENDING", fill: TRACK_CAUTION, text: "#18181b" },
+  red: { label: "RED FLAG", fill: TRACK_RED, text: "#fafafa" },
+};
+
+/** The whole outline takes the flag colour once the caution covers the track. */
+function trackColorFor(flags: TrackMapFlags): string {
+  switch (flags.kind) {
+    case "red":
+      return TRACK_RED;
+    case "sc":
+    case "vsc":
+    case "vsc-ending":
+      return TRACK_CAUTION;
+    case "yellow":
+      return flags.trackWide ? TRACK_CAUTION : TRACK_DEFAULT;
+    default:
+      return TRACK_DEFAULT;
+  }
+}
+
+/**
+ * Circuit outline with live car dots. With `highlight` set (the driver tab),
+ * the named car keeps its label and pops; the rest dim and go label-less.
+ */
+export function TrackMap({ highlight }: { highlight?: string }) {
   const state = useDataStore((s) => s.state);
   const { race } = useUpcomingRace();
   const latest = state.Position?.Position.at(-1);
@@ -77,17 +120,26 @@ export function TrackMap() {
   const cars: TrackPoint[] = Object.entries(latest?.Entries ?? {})
     .flatMap(([racingNumber, car]) => carPoint(racingNumber, car, rowByNumber))
     .sort((a, b) => {
+      // Leaderboard order; the highlighted car draws last so it sits on top.
+      if (highlight && (a.racingNumber === highlight) !== (b.racingNumber === highlight)) {
+        return a.racingNumber === highlight ? 1 : -1;
+      }
       const left = rowByNumber.get(a.racingNumber)?.position ?? 999;
       const right = rowByNumber.get(b.racingNumber)?.position ?? 999;
       return left - right;
     });
 
-  const drawing = useMemo(() => buildDrawing(geometry, cars), [geometry, cars]);
+  const flags = useMemo(
+    () => trackMapFlags(state.TrackStatus?.Status, state.RaceControlMessages),
+    [state.TrackStatus, state.RaceControlMessages],
+  );
+  const drawing = useMemo(() => buildDrawing(geometry, cars, flags), [geometry, cars, flags]);
+  const badge = FLAG_BADGE[flags.kind];
 
   return (
-    <section className="border-b border-zinc-800">
-      <div className="flex items-center justify-between px-3 py-2">
-        <h2 className="text-xs uppercase tracking-wide text-zinc-500">Track</h2>
+    <section className="rounded-lg border border-zinc-800 p-4">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="text-xs uppercase tracking-wide text-zinc-500">Track map</h2>
         <span className="font-mono text-xs text-zinc-600">
           {latest?.Timestamp
             ? latest.Timestamp.slice(11, 19)
@@ -97,19 +149,60 @@ export function TrackMap() {
 
       {drawing ? (
         <svg
-          className="block h-56 w-full px-3 pb-3"
+          className="mx-auto block h-auto max-h-96 w-full"
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           role="img"
           aria-label="Circuit map with current car positions"
         >
           <path
             d={drawing.trackPath}
-            className="fill-none stroke-zinc-700"
+            fill="none"
+            stroke={trackColorFor(flags)}
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth="1.5"
             vectorEffect="non-scaling-stroke"
           />
+
+          {drawing.yellowSegments.map((segment) => (
+            <path
+              key={segment.number}
+              d={segment.path}
+              fill="none"
+              stroke={TRACK_CAUTION}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="3"
+              vectorEffect="non-scaling-stroke"
+              className={segment.flag === "double-yellow" ? "animate-pulse" : undefined}
+            >
+              <title>{`${segment.flag === "double-yellow" ? "Double yellow" : "Yellow"} in track sector ${segment.number}`}</title>
+            </path>
+          ))}
+
+          {badge && (
+            <g aria-label={badge.label}>
+              <rect
+                x="2"
+                y="2"
+                width={badge.label.length * 2.6 + 5}
+                height="8"
+                rx="1.5"
+                fill={badge.fill}
+                className={flags.kind === "vsc-ending" ? "animate-pulse" : undefined}
+              />
+              <text
+                x={2 + (badge.label.length * 2.6 + 5) / 2}
+                y="6.4"
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill={badge.text}
+                className="font-mono text-[4px] font-semibold"
+              >
+                {badge.label}
+              </text>
+            </g>
+          )}
 
           {drawing.corners.map((corner) => (
             <text
@@ -124,26 +217,37 @@ export function TrackMap() {
             </text>
           ))}
 
-          {drawing.cars.map((point) => (
-            <g key={point.racingNumber} transform={`translate(${point.x} ${point.y})`}>
-              <circle r="2.4" fill={point.color} className="stroke-black" strokeWidth="0.8" />
-              <text
-                x="3.6"
-                y="-3"
-                className="fill-zinc-100 font-mono text-[4px] font-semibold"
+          {drawing.cars.map((point) => {
+            const dimmed = Boolean(highlight) && point.racingNumber !== highlight;
+            const focused = highlight === point.racingNumber;
+            return (
+              <g
+                key={point.racingNumber}
+                transform={`translate(${point.x} ${point.y})`}
+                className={dimmed ? "opacity-40" : undefined}
               >
-                {point.label}
-              </text>
-            </g>
-          ))}
+                <circle
+                  r={focused ? 3 : dimmed ? 1.9 : 2.4}
+                  fill={point.color}
+                  className={focused ? "stroke-zinc-100" : "stroke-black"}
+                  strokeWidth="0.8"
+                />
+                {!dimmed && (
+                  <text
+                    x={focused ? 4.2 : 3.6}
+                    y={point.labelDy}
+                    className="fill-zinc-100 font-mono text-[4px] font-semibold"
+                  >
+                    {point.label}
+                  </text>
+                )}
+              </g>
+            );
+          })}
         </svg>
       ) : (
-        <div className="px-3 pb-4">
-          {loading ? (
-            <div className="text-sm text-zinc-600">Loading circuit map.</div>
-          ) : (
-            <div className="text-sm text-zinc-600">No circuit map.</div>
-          )}
+        <div className="text-sm text-zinc-600">
+          {loading ? "Loading circuit map." : "No circuit map."}
         </div>
       )}
     </section>
@@ -188,7 +292,7 @@ function hasOutline(value: CircuitGeometry | null): value is CircuitGeometryWith
   return Boolean(value?.x?.length && value.y?.length && value.x.length === value.y.length);
 }
 
-function buildDrawing(geometry: CircuitGeometry | null, cars: TrackPoint[]) {
+function buildDrawing(geometry: CircuitGeometry | null, cars: TrackPoint[], flags: TrackMapFlags) {
   if (!hasOutline(geometry)) return null;
 
   const outline = geometry.x.map((x, i) => ({ x, y: geometry.y[i] }));
@@ -205,12 +309,58 @@ function buildDrawing(geometry: CircuitGeometry | null, cars: TrackPoint[]) {
     rotation,
   );
   const bounds = boundsFor(rotatedOutline);
+  const projected = rotatedOutline.map((point) => project(point, bounds));
 
   return {
-    trackPath: pathFor(rotatedOutline.map((point) => project(point, bounds))),
-    cars: rotatedCars.map((point) => ({ ...point, ...project(point, bounds) })),
+    trackPath: pathFor(projected),
+    yellowSegments: yellowSegmentPaths(outline, projected, geometry, flags),
+    cars: staggerLabels(rotatedCars.map((point) => ({ ...point, ...project(point, bounds) }))),
     corners: rotatedCorners.map((corner) => ({ ...corner, ...project(corner, bounds) })),
   };
+}
+
+/**
+ * Paths for the marshal sectors currently under yellow. Sector boundaries are
+ * matched against the *raw* outline (marshal posts share its coordinate
+ * space), then the index ranges slice the projected points — indices survive
+ * rotation and projection, so both stay in lockstep.
+ */
+function yellowSegmentPaths(
+  outline: RawPoint[],
+  projected: RawPoint[],
+  geometry: CircuitGeometry,
+  flags: TrackMapFlags,
+) {
+  if (flags.kind !== "yellow" || flags.sectors.size === 0) return [];
+
+  return marshalSegments(outline, geometry.marshalSectors).flatMap((segment) => {
+    const flag = flags.sectors.get(segment.number);
+    if (!flag) return [];
+    return [{ number: segment.number, flag, path: pathFor(sliceSegment(projected, segment)) }];
+  });
+}
+
+// Approximate label footprint in viewBox units, for collision checks.
+const LABEL_W = 11;
+const LABEL_H = 4.5;
+
+/**
+ * Nose-to-tail cars get stacked labels instead of overprinted ones. Cars
+ * arrive in leaderboard order, so the car ahead keeps the prime spot and
+ * followers shift down a line at a time.
+ */
+function staggerLabels<T extends RawPoint>(cars: T[]): Array<T & { labelDy: number }> {
+  const placed: RawPoint[] = [];
+  return cars.map((car) => {
+    let labelDy = -3;
+    const collides = () =>
+      placed.some(
+        (p) => Math.abs(p.x - car.x) < LABEL_W && Math.abs(p.y - (car.y + labelDy)) < LABEL_H,
+      );
+    while (collides()) labelDy += LABEL_H;
+    placed.push({ x: car.x, y: car.y + labelDy });
+    return { ...car, labelDy };
+  });
 }
 
 function rotateAll<T extends RawPoint>(points: T[], reference: RawPoint[], degrees: number): T[] {
@@ -247,15 +397,19 @@ function boundsFor(points: RawPoint[]) {
   };
 }
 
+/**
+ * Fit the circuit into the canvas without distorting it: one uniform scale
+ * (the tighter axis wins), centered on both axes. Y flips — feed north is up,
+ * SVG y grows down.
+ */
 function project(point: RawPoint, bounds: ReturnType<typeof boundsFor>) {
   const spanX = bounds.maxX - bounds.minX;
   const spanY = bounds.maxY - bounds.minY;
+  const scale = Math.min((WIDTH - PAD * 2) / spanX, (HEIGHT - PAD * 2) / spanY);
+  if (!Number.isFinite(scale)) return { x: WIDTH / 2, y: HEIGHT / 2 };
   return {
-    x: spanX === 0 ? WIDTH / 2 : PAD + ((point.x - bounds.minX) / spanX) * (WIDTH - PAD * 2),
-    y:
-      spanY === 0
-        ? HEIGHT / 2
-        : HEIGHT - PAD - ((point.y - bounds.minY) / spanY) * (HEIGHT - PAD * 2),
+    x: (WIDTH - spanX * scale) / 2 + (point.x - bounds.minX) * scale,
+    y: HEIGHT - (HEIGHT - spanY * scale) / 2 - (point.y - bounds.minY) * scale,
   };
 }
 

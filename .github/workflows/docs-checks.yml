@@ -1,0 +1,33 @@
+# Reusable docs gates: hygiene limits (scripts/checks.sh) + markdown link
+# check. PR CI calls this offline (relative links only, deterministic);
+# maintenance.yml calls it weekly with check_external to catch rotted URLs.
+name: Docs checks
+
+on:
+  workflow_call:
+    inputs:
+      check_external:
+        description: Also check external (http) links
+        type: boolean
+        default: false
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hygiene gates (AGENTS.md length, file sizes)
+        run: ./scripts/checks.sh
+      - name: Markdown links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # Excluded from the external pass: loopback/dev URLs, the templated
+          # livetiming CDN path (not a real endpoint), and reddit (403s bots).
+          args: >-
+            ${{ inputs.check_external && '' || '--offline' }}
+            --include-fragments --no-progress
+            --exclude-loopback
+            --exclude 'livetiming.formula1.com'
+            --exclude 'reddit.com'
+            README.md AGENTS.md CLAUDE.md docs .claude
+          fail: true

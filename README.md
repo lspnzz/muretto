@@ -39,6 +39,13 @@ There is intentionally **no schedule service** and **no Kubernetes** — see the
 | `simulator/`       | record / replay tool for offline dev                              |
 | `dashboard/`       | Next.js frontend (types under `dashboard/src/types` are generated) |
 
+## Docs
+
+[AGENTS.md](AGENTS.md) is the working map of the repo (commands, invariants, gates) — for
+agents and humans alike. The knowledge base under [docs/](docs/README.md) holds the design
+beliefs, external-system references (F1 feed wire format, MultiViewer API), and numbered
+plans with their decision logs.
+
 ## Develop
 
 Prerequisites: Rust (stable) and Node 20+.
@@ -116,4 +123,7 @@ No database and no paid data feed, so the cost is just compute + bandwidth:
 ## CI
 
 `cargo fmt`/`clippy`/`test`, a **bindings-drift gate** (`git diff` on the generated types after
-tests), frontend lint/typecheck/test/build, and Docker builds for both images.
+tests), frontend lint/typecheck/test/build, Docker builds for both images, an **offline
+end-to-end smoke test** (`scripts/smoke.sh`: replay fixture → realtime → SSE assertions), and
+**docs gates** (`scripts/checks.sh` size limits + lychee relative-link check). A weekly
+scheduled job re-checks external links.

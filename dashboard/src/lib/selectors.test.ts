@@ -1,7 +1,40 @@
 import { describe, expect, it } from "vitest";
 
-import type { State } from "@/types";
-import { currentStint, pitCount, stintsForDriver } from "./selectors";
+import type { Driver, State } from "@/types";
+import { currentStint, displayName, pitCount, stintsForDriver } from "./selectors";
+
+function driver(overrides: Partial<Driver>): Driver {
+  return {
+    RacingNumber: "44",
+    BroadcastName: "",
+    FullName: "",
+    Tla: "",
+    LastName: "",
+    ...overrides,
+  } as Driver;
+}
+
+describe("displayName", () => {
+  it("prefers the surname", () => {
+    const d = driver({ LastName: "Hamilton", FullName: "Lewis Hamilton", Tla: "HAM" });
+    expect(displayName(d, "44")).toBe("Hamilton");
+  });
+
+  it("derives the surname from the full name", () => {
+    expect(displayName(driver({ FullName: "Lewis Hamilton" }), "44")).toBe("Hamilton");
+    expect(displayName(driver({ FullName: "Nyck de Vries" }), "21")).toBe("de Vries");
+  });
+
+  it("strips the initial from a broadcast name", () => {
+    expect(displayName(driver({ BroadcastName: "M VERSTAPPEN" }), "1")).toBe("VERSTAPPEN");
+  });
+
+  it("falls back to TLA, then racing number", () => {
+    expect(displayName(driver({ Tla: "ALO" }), "14")).toBe("ALO");
+    expect(displayName(driver({}), "14")).toBe("14");
+    expect(displayName(undefined, "14")).toBe("14");
+  });
+});
 
 describe("stintsForDriver", () => {
   it("sorts stint history by feed index", () => {
@@ -37,6 +70,7 @@ describe("stintsForDriver", () => {
       SessionData: null,
       TeamRadio: null,
       ChampionshipPrediction: null,
+      LastFeedEventMs: null,
     } satisfies State;
 
     expect(stintsForDriver(state, "44").map((stint) => stint.Compound)).toEqual([

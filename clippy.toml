@@ -1,0 +1,9 @@
+# Encodes real, previously-hit footguns; the `reason` surfaces in the clippy
+# diagnostic, so the error itself teaches the fix.
+
+allow-unwrap-in-tests = true
+
+disallowed-types = [
+  { path = "flate2::read::ZlibDecoder", reason = "F1 `.z` payloads are base64'd RAW DEFLATE (no zlib header); ZlibDecoder compiles but fails on every frame. Use flate2::read::DeflateDecoder — see docs/references/f1-feed.md." },
+  { path = "flate2::bufread::ZlibDecoder", reason = "F1 `.z` payloads are raw DEFLATE — use the DeflateDecoder family. See docs/references/f1-feed.md." },
+]

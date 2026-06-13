@@ -76,7 +76,11 @@ pub struct Segment {
 pub struct Speeds {
     pub i1: LapVal,
     pub i2: LapVal,
+    // The wire upper-cases these trap names; PascalCase would emit "Fl"/"St"
+    // and the values would silently never deserialize.
+    #[serde(rename = "FL")]
     pub fl: LapVal,
+    #[serde(rename = "ST")]
     pub st: LapVal,
 }
 
