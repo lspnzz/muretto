@@ -1,7 +1,38 @@
 import { describe, expect, it } from "vitest";
 
 import type { Driver, State } from "@/types";
-import { currentStint, displayName, pitCount, stintsForDriver } from "./selectors";
+import {
+  currentStint,
+  displayName,
+  fastestSectorLeaders,
+  pitCount,
+  stintsForDriver,
+} from "./selectors";
+
+function state(overrides: Partial<State> = {}): State {
+  return {
+    Heartbeat: null,
+    ExtrapolatedClock: null,
+    TrackStatus: null,
+    SessionStatus: null,
+    SessionInfo: null,
+    LapCount: null,
+    WeatherData: null,
+    DriverList: null,
+    TimingData: null,
+    TimingAppData: null,
+    RaceControlMessages: null,
+    CarData: null,
+    Position: null,
+    TimingStats: null,
+    TopThree: null,
+    SessionData: null,
+    TeamRadio: null,
+    ChampionshipPrediction: null,
+    LastFeedEventMs: null,
+    ...overrides,
+  };
+}
 
 function driver(overrides: Partial<Driver>): Driver {
   return {
@@ -38,16 +69,7 @@ describe("displayName", () => {
 
 describe("stintsForDriver", () => {
   it("sorts stint history by feed index", () => {
-    const state = {
-      Heartbeat: null,
-      ExtrapolatedClock: null,
-      TrackStatus: null,
-      SessionStatus: null,
-      SessionInfo: null,
-      LapCount: null,
-      WeatherData: null,
-      DriverList: null,
-      TimingData: null,
+    const currentState = state({
       TimingAppData: {
         Lines: {
           "44": {
@@ -62,23 +84,58 @@ describe("stintsForDriver", () => {
           },
         },
       },
-      RaceControlMessages: null,
-      CarData: null,
-      Position: null,
-      TimingStats: null,
-      TopThree: null,
-      SessionData: null,
-      TeamRadio: null,
-      ChampionshipPrediction: null,
-      LastFeedEventMs: null,
-    } satisfies State;
+    });
 
-    expect(stintsForDriver(state, "44").map((stint) => stint.Compound)).toEqual([
+    expect(stintsForDriver(currentState, "44").map((stint) => stint.Compound)).toEqual([
       "MEDIUM",
       "SOFT",
       "HARD",
     ]);
-    expect(currentStint(state, "44")?.Compound).toBe("HARD");
-    expect(pitCount(state, "44")).toBe(2);
+    expect(currentStint(currentState, "44")?.Compound).toBe("HARD");
+    expect(pitCount(currentState, "44")).toBe(2);
+  });
+});
+
+describe("fastestSectorLeaders", () => {
+  it("returns session-best sector holders with team colours", () => {
+    const currentState = state({
+      DriverList: {
+        "44": driver({ RacingNumber: "44", Tla: "HAM", TeamColour: "00D2BE", Line: 1 }),
+        "16": driver({ RacingNumber: "16", Tla: "LEC", TeamColour: "DC0000", Line: 2 }),
+      },
+      TimingStats: {
+        Lines: {
+          "44": {
+            BestSectors: [
+              { Value: "28.143", Position: 2 },
+              { Value: "33.421", Position: 1 },
+            ],
+          },
+          "16": {
+            BestSectors: [
+              { Value: "28.301", Position: 1 },
+              { Value: "33.298", Position: 2 },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(fastestSectorLeaders(currentState)).toEqual([
+      {
+        sector: 0,
+        racingNumber: "16",
+        label: "LEC",
+        color: "#DC0000",
+        value: "28.301",
+      },
+      {
+        sector: 1,
+        racingNumber: "44",
+        label: "HAM",
+        color: "#00D2BE",
+        value: "33.421",
+      },
+    ]);
   });
 });

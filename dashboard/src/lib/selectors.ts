@@ -1,6 +1,7 @@
 // Derive view-model rows from the typed state. Keeps PascalCase field access in
 // one place so components stay tidy.
 
+import { bestSectorPosition, bestSectorValue } from "@/lib/ragged";
 import type { CarChannels, Driver, State, Stint, TimingDataDriver } from "@/types";
 
 export type DriverRow = {
@@ -9,6 +10,17 @@ export type DriverRow = {
   timing?: TimingDataDriver;
   position: number;
 };
+
+export type FastestSectorLeader = {
+  sector: number;
+  racingNumber: string;
+  label: string;
+  color: string;
+  value: string | null;
+};
+
+const TIMING_SECTOR_COUNT = 3;
+const FALLBACK_TEAM_COLOR = "#a1a1aa";
 
 /**
  * Broadcast-style surname for the timing tower (casing styled in CSS).
@@ -77,4 +89,24 @@ export function stintLaps(state: State, racingNumber: string): number | undefine
 /** Best-effort stop count derived from stint count; the feed does not expose it directly. */
 export function pitCount(state: State, racingNumber: string): number {
   return Math.max(0, stintsForDriver(state, racingNumber).length - 1);
+}
+
+/** Session-best timing-sector holders, coloured by their team/car colour. */
+export function fastestSectorLeaders(state: State): FastestSectorLeader[] {
+  const rows = orderedDrivers(state);
+
+  return Array.from({ length: TIMING_SECTOR_COUNT }, (_, sector) => {
+    const row = rows.find(
+      (candidate) => bestSectorPosition(state.TimingStats, candidate.racingNumber, sector) === 1,
+    );
+    if (!row) return null;
+
+    return {
+      sector,
+      racingNumber: row.racingNumber,
+      label: row.driver?.Tla || row.racingNumber,
+      color: row.driver?.TeamColour ? `#${row.driver.TeamColour}` : FALLBACK_TEAM_COLOR,
+      value: bestSectorValue(state.TimingStats, row.racingNumber, sector),
+    };
+  }).filter((leader): leader is FastestSectorLeader => Boolean(leader));
 }
