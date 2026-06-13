@@ -15,7 +15,7 @@ export function TimingsTab() {
     <>
       {liveness === "ended" && <SessionEndedBanner />}
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 p-4">
-        <TrackMap />
+        <TrackMap showFastestSectors />
         <TimingTower />
       </div>
     </>

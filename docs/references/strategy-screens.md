@@ -100,6 +100,10 @@ and plan [0004](../plans/0004-timings-tab-restyle.md):
   `GREEN`/`CLEAR` wipes) and paints the matching `marshalSectors` segments
   (see [multiviewer-circuits](multiviewer-circuits.md)). Double yellow
   pulses.
+- **Timing-tab fastest-sector map overlay**: reads
+  `TimingStats.Lines[nr].BestSectors[*].Position == 1`, colours each timing
+  sector with that driver's `TeamColour`, and suppresses the overlay during
+  SC/VSC/red states so race-control colouring stays dominant.
 - **Fastest-lap holder** (row highlight + violet best lap): the driver whose
   `TimingStats.Lines[nr].PersonalBestLapTime.Position == 1` — `TimingStats`
   is a ragged topic, read it defensively.

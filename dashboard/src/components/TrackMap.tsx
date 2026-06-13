@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useUpcomingRace } from "@/hooks/useUpcomingRace";
 import { marshalSegments, sliceSegment, trackMapFlags } from "@/lib/flags";
 import type { TrackMapFlags } from "@/lib/flags";
-import { orderedDrivers } from "@/lib/selectors";
+import { fastestSectorLeaders, orderedDrivers } from "@/lib/selectors";
+import type { FastestSectorLeader } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import type { PositionCar, State } from "@/types";
 
@@ -40,11 +41,17 @@ type TrackPoint = RawPoint & {
   color: string;
 };
 
+type TrackMapProps = {
+  highlight?: string;
+  showFastestSectors?: boolean;
+};
+
 // Wide broadcast-strip canvas: the panel spans the container above the
 // timing tower, and the projection letterboxes the circuit inside it.
 const WIDTH = 200;
 const HEIGHT = 80;
 const PAD = 6;
+const TIMING_SECTOR_COUNT = 3;
 
 // Hexes match TRACK_STATUS in lib/trackStatus.ts (amber-400 / red-500).
 const TRACK_DEFAULT = "#3f3f46";
@@ -79,7 +86,7 @@ function trackColorFor(flags: TrackMapFlags): string {
  * Circuit outline with live car dots. With `highlight` set (the driver tab),
  * the named car keeps its label and pops; the rest dim and go label-less.
  */
-export function TrackMap({ highlight }: { highlight?: string }) {
+export function TrackMap({ highlight, showFastestSectors = false }: TrackMapProps) {
   const state = useDataStore((s) => s.state);
   const { race } = useUpcomingRace();
   const nativeLatest = state.Position?.Position.at(-1) ?? null;
@@ -132,7 +139,14 @@ export function TrackMap({ highlight }: { highlight?: string }) {
     () => trackMapFlags(state.TrackStatus?.Status, state.RaceControlMessages),
     [state.TrackStatus, state.RaceControlMessages],
   );
-  const drawing = useMemo(() => buildDrawing(geometry, cars, flags), [geometry, cars, flags]);
+  const sectorLeaders = useMemo(
+    () => (showFastestSectors ? fastestSectorLeaders(state) : []),
+    [showFastestSectors, state],
+  );
+  const drawing = useMemo(
+    () => buildDrawing(geometry, cars, flags, sectorLeaders),
+    [geometry, cars, flags, sectorLeaders],
+  );
   const statusLabel = FLAG_LABEL[flags.kind];
 
   return (
@@ -166,6 +180,24 @@ export function TrackMap({ highlight }: { highlight?: string }) {
             strokeWidth="1.5"
             vectorEffect="non-scaling-stroke"
           />
+
+          {drawing.fastestSectors.map((segment) => (
+            <path
+              key={segment.sector}
+              d={segment.path}
+              fill="none"
+              stroke={segment.color}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2.6"
+              vectorEffect="non-scaling-stroke"
+              opacity="0.9"
+            >
+              <title>
+                {`Sector ${segment.sector + 1}: ${segment.label}${segment.value ? ` ${segment.value}` : ""}`}
+              </title>
+            </path>
+          ))}
 
           {drawing.yellowSegments.map((segment) => (
             <path
@@ -267,7 +299,12 @@ function hasOutline(value: CircuitGeometry | null): value is CircuitGeometryWith
   return Boolean(value?.x?.length && value.y?.length && value.x.length === value.y.length);
 }
 
-function buildDrawing(geometry: CircuitGeometry | null, cars: TrackPoint[], flags: TrackMapFlags) {
+function buildDrawing(
+  geometry: CircuitGeometry | null,
+  cars: TrackPoint[],
+  flags: TrackMapFlags,
+  sectorLeaders: FastestSectorLeader[],
+) {
   if (!hasOutline(geometry)) return null;
 
   const outline = geometry.x.map((x, i) => ({ x, y: geometry.y[i] }));
@@ -288,10 +325,34 @@ function buildDrawing(geometry: CircuitGeometry | null, cars: TrackPoint[], flag
 
   return {
     trackPath: pathFor(projected),
+    fastestSectors: fastestSectorPaths(projected, flags, sectorLeaders),
     yellowSegments: yellowSegmentPaths(outline, projected, geometry, flags),
     cars: staggerLabels(rotatedCars.map((point) => ({ ...point, ...project(point, bounds) }))),
     corners: rotatedCorners.map((corner) => ({ ...corner, ...project(corner, bounds) })),
   };
+}
+
+function fastestSectorPaths(
+  projected: RawPoint[],
+  flags: TrackMapFlags,
+  sectorLeaders: FastestSectorLeader[],
+) {
+  if (
+    sectorLeaders.length === 0 ||
+    flags.kind === "red" ||
+    flags.kind === "sc" ||
+    flags.kind === "vsc" ||
+    flags.kind === "vsc-ending"
+  ) {
+    return [];
+  }
+
+  const sectors = splitPathEvenly(projected, TIMING_SECTOR_COUNT);
+  return sectorLeaders.flatMap((leader) => {
+    const points = sectors[leader.sector];
+    if (!points || points.length < 2) return [];
+    return [{ ...leader, path: pathFor(points) }];
+  });
 }
 
 /**
@@ -386,6 +447,55 @@ function project(point: RawPoint, bounds: ReturnType<typeof boundsFor>) {
     x: (WIDTH - spanX * scale) / 2 + (point.x - bounds.minX) * scale,
     y: HEIGHT - (HEIGHT - spanY * scale) / 2 - (point.y - bounds.minY) * scale,
   };
+}
+
+function splitPathEvenly(points: RawPoint[], count: number): RawPoint[][] {
+  if (points.length < 2 || count < 1) return [];
+
+  const total = totalDistance(points);
+  if (!Number.isFinite(total) || total <= 0) return [];
+
+  const sectors: RawPoint[][] = [];
+  let current: RawPoint[] = [points[0]];
+  let travelled = 0;
+  let nextCut = total / count;
+  let cutIndex = 1;
+
+  for (let i = 1; i < points.length; i += 1) {
+    const start = points[i - 1];
+    const end = points[i];
+    const length = distance(start, end);
+
+    while (cutIndex < count && travelled + length >= nextCut) {
+      const ratio = length === 0 ? 0 : (nextCut - travelled) / length;
+      const cut = {
+        x: start.x + (end.x - start.x) * ratio,
+        y: start.y + (end.y - start.y) * ratio,
+      };
+      current.push(cut);
+      sectors.push(current);
+      current = [cut];
+      cutIndex += 1;
+      nextCut = (total * cutIndex) / count;
+    }
+
+    current.push(end);
+    travelled += length;
+  }
+
+  sectors.push(current);
+  return sectors.slice(0, count);
+}
+
+function totalDistance(points: RawPoint[]): number {
+  return points.reduce((sum, point, i) => {
+    if (i === 0) return 0;
+    return sum + distance(points[i - 1], point);
+  }, 0);
+}
+
+function distance(a: RawPoint, b: RawPoint): number {
+  return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
 function pathFor(points: RawPoint[]) {
