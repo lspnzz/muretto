@@ -3,7 +3,7 @@
 // The small leaderboard cells. Column semantics and colour conventions:
 // docs/references/strategy-screens.md (re-implemented, not copied — AGPL).
 // No DRS column: post-2026 cars have none and the feed carries no
-// energy-deployment channel; in/out pit state rides the gap column instead.
+// energy-deployment channel.
 
 import { tyreHex } from "@/lib/tyre";
 import type { Stint, TimingDataDriver } from "@/types";
@@ -43,30 +43,33 @@ export function PitCell({ stints }: { stints: Stint[] }) {
   );
 }
 
-/** Interval to the car ahead over gap to the leader; pit state overrides. */
+/** Interval to the car ahead over gap to the leader. */
 export function GapCell({ timing }: { timing: TimingDataDriver }) {
   const interval = timing.IntervalToPositionAhead?.Value || timing.TimeDiffToPositionAhead || "";
   const gap = timing.GapToLeader || timing.TimeDiffToFastest || "";
-  const pitWord = timing.InPit ? "IN PIT" : timing.PitOut ? "PIT OUT" : null;
-  const catching =
-    !pitWord && Boolean(timing.IntervalToPositionAhead?.Catching) && Boolean(interval);
+  const catching = Boolean(timing.IntervalToPositionAhead?.Catching) && Boolean(interval);
 
   return (
     <div className="justify-self-end text-right font-mono">
       <p
         className={`text-base leading-none font-medium tabular-nums ${
-          pitWord
-            ? "text-cyan-400"
-            : catching
-              ? "text-emerald-500"
-              : interval
-                ? ""
-                : "text-zinc-500"
+          catching ? "text-emerald-500" : interval ? "" : "text-zinc-500"
         }`}
       >
-        {pitWord ?? (interval || "-- ---")}
+        {interval || "-- ---"}
       </p>
       <p className="mt-1 text-xs leading-none tabular-nums text-zinc-500">{gap || "-- ---"}</p>
+    </div>
+  );
+}
+
+/** In/out pit state sits in the unlabeled trailing status column when present. */
+export function PitStatusCell({ timing }: { timing: TimingDataDriver }) {
+  const pitWord = timing.InPit ? "IN PIT" : timing.PitOut ? "PIT OUT" : "";
+
+  return (
+    <div className="justify-self-end font-mono text-xs leading-none font-semibold text-cyan-400">
+      {pitWord && <span>{pitWord}</span>}
     </div>
   );
 }
