@@ -1,7 +1,3 @@
-"use client";
-
-import { bestSectorPosition, bestSectorValue } from "@/lib/ragged";
-import type { JsonValue } from "@/types/serde_json/JsonValue";
 import type { Sector, Segment } from "@/types";
 
 // Mini-sector segment status codes (docs/references/strategy-screens.md).
@@ -23,13 +19,9 @@ export function segmentClass(status: number): string {
 }
 
 export function SectorsCell({
-  racingNumber,
   sectors,
-  timingStats,
 }: {
-  racingNumber: string;
   sectors: { [key: string]: Sector | undefined };
-  timingStats: JsonValue | null | undefined;
 }) {
   const ordered = Object.keys(sectors)
     .sort((a, b) => Number(a) - Number(b))
@@ -37,10 +29,8 @@ export function SectorsCell({
 
   return (
     <div className="flex gap-2.5">
-      {ordered.map(({ key, sector }, index) => {
+      {ordered.map(({ key, sector }) => {
         const valueCls = sectorValueClass(sector);
-        const best = bestSectorValue(timingStats, racingNumber, index);
-        const bestIsOverall = bestSectorPosition(timingStats, racingNumber, index) === 1;
 
         return (
           <div key={key} className="flex flex-col gap-1">
@@ -57,15 +47,6 @@ export function SectorsCell({
               <p className={`text-base leading-none font-medium tabular-nums ${valueCls}`}>
                 {sector.Value || sector.PreviousValue || "-- ---"}
               </p>
-              {best && (
-                <p
-                  className={`text-xs leading-none tabular-nums ${
-                    bestIsOverall ? "text-violet-500" : "text-zinc-500"
-                  }`}
-                >
-                  {best}
-                </p>
-              )}
             </div>
           </div>
         );

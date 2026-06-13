@@ -52,14 +52,12 @@ const TRACK_DEFAULT = "#3f3f46";
 const TRACK_CAUTION = "#fbbf24";
 const TRACK_RED = "#ef4444";
 
-const FLAG_BADGE: Partial<
-  Record<TrackMapFlags["kind"], { label: string; fill: string; text: string }>
-> = {
-  yellow: { label: "YELLOW FLAG", fill: TRACK_CAUTION, text: "#18181b" },
-  sc: { label: "SAFETY CAR", fill: TRACK_CAUTION, text: "#18181b" },
-  vsc: { label: "VSC DEPLOYED", fill: TRACK_CAUTION, text: "#18181b" },
-  "vsc-ending": { label: "VSC ENDING", fill: TRACK_CAUTION, text: "#18181b" },
-  red: { label: "RED FLAG", fill: TRACK_RED, text: "#fafafa" },
+const FLAG_LABEL: Partial<Record<TrackMapFlags["kind"], { label: string; className: string }>> = {
+  yellow: { label: "Yellow flag", className: "text-amber-400" },
+  sc: { label: "Safety car", className: "text-amber-400" },
+  vsc: { label: "VSC deployed", className: "text-amber-400" },
+  "vsc-ending": { label: "VSC ending", className: "text-amber-400" },
+  red: { label: "Red flag", className: "text-red-500" },
 };
 
 /** The whole outline takes the flag colour once the caution covers the track. */
@@ -134,12 +132,16 @@ export function TrackMap({ highlight }: { highlight?: string }) {
     [state.TrackStatus, state.RaceControlMessages],
   );
   const drawing = useMemo(() => buildDrawing(geometry, cars, flags), [geometry, cars, flags]);
-  const badge = FLAG_BADGE[flags.kind];
+  const statusLabel = FLAG_LABEL[flags.kind];
 
   return (
     <section className="rounded-lg border border-zinc-800 p-4">
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-xs uppercase tracking-wide text-zinc-500">Track map</h2>
+        <h2
+          className={`text-xs uppercase tracking-wide ${statusLabel?.className ?? "text-zinc-500"}`}
+        >
+          {statusLabel?.label ?? "Track map"}
+        </h2>
         <span className="font-mono text-xs text-zinc-600">
           {latest?.Timestamp
             ? latest.Timestamp.slice(11, 19)
@@ -179,30 +181,6 @@ export function TrackMap({ highlight }: { highlight?: string }) {
               <title>{`${segment.flag === "double-yellow" ? "Double yellow" : "Yellow"} in track sector ${segment.number}`}</title>
             </path>
           ))}
-
-          {badge && (
-            <g aria-label={badge.label}>
-              <rect
-                x="2"
-                y="2"
-                width={badge.label.length * 2.6 + 5}
-                height="8"
-                rx="1.5"
-                fill={badge.fill}
-                className={flags.kind === "vsc-ending" ? "animate-pulse" : undefined}
-              />
-              <text
-                x={2 + (badge.label.length * 2.6 + 5) / 2}
-                y="6.4"
-                textAnchor="middle"
-                dominantBaseline="central"
-                fill={badge.text}
-                className="font-mono text-[4px] font-semibold"
-              >
-                {badge.label}
-              </text>
-            </g>
-          )}
 
           {drawing.corners.map((corner) => (
             <text

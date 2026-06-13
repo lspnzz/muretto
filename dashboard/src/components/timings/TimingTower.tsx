@@ -8,7 +8,7 @@ import { useDataStore } from "@/stores/useDataStore";
 import type { TimingDataDriver } from "@/types";
 import { TIMING_GRID, TimingRow } from "./TimingRow";
 
-const HEADERS = ["Driver", "Tyre", "Gap", "Lap time", "Sectors"];
+const HEADERS = ["Driver", "Tyre", "Pit", "Gap", "Time", "Best", "Sectors"];
 
 export function TimingTower() {
   const state = useDataStore((s) => s.state);
