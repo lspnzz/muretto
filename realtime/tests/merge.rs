@@ -3,8 +3,8 @@
 //! project's untyped merge (deep partials leaving siblings intact, arrays-as-
 //! objects, keyed add/update/remove, array-or-object initial shapes).
 
-use realtime::ingest::decompress;
 use realtime::model::State;
+use realtime::{ingest::decompress, signalr};
 use serde_json::{Value, json};
 
 /// Load an INITIAL snapshot as the feed delivers it: `{ "<Topic>": <data> }`.
@@ -133,12 +133,10 @@ fn replay_fixture_initial_then_partial_sequence() {
     }
 
     for line in lines {
-        let frame: Value = serde_json::from_str(line).unwrap();
-        let messages = frame["M"].as_array().unwrap();
-        for message in messages {
-            let args = message["A"].as_array().unwrap();
-            let topic = args[0].as_str().unwrap();
-            apply_decoded(&mut s, topic, args[1].clone());
+        if let Some(updates) = signalr::parse_feed(line) {
+            for update in updates {
+                apply_decoded(&mut s, &update.topic, update.data);
+            }
         }
     }
 

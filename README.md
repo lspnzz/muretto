@@ -60,6 +60,10 @@ F1_DEV_URL=ws://localhost:8000/ws ADDRESS=127.0.0.1:4000 \
   cargo run -p realtime                                              # terminal 2
 curl -N http://127.0.0.1:4000/api/realtime                          # see the SSE stream
 
+# Capture the next live session for later replay/debugging:
+./scripts/record-next-session.sh
+./scripts/smoke.sh simulator/recordings/live-YYYYMMDDTHHMMSSZ.jsonl
+
 # Or the whole thing in Docker (offline):
 F1_DEV_URL=ws://replay:8000/ws docker compose --profile dev up
 ```

@@ -103,13 +103,21 @@ removed keys behind (`realtime/src/server/mod.rs`,
 
 ## Recording and replaying sessions
 
-- Record (live session only): `cargo run -p simulator -- save <file>` —
-  refuses to overwrite. Line 1 is `{"R": <initial>}`; every later line is one
-  raw frame, verbatim.
+- Record a live session already in progress:
+  `cargo run -p simulator -- save <file>` — refuses to overwrite. Line 1 is
+  `{"R": <initial>}`; every later line is one raw frame, verbatim.
+- Record the next session before it is live:
+  `cargo run -p simulator -- save-next <file>`. If the subscribe snapshot is
+  the previous ended session, this waits for the next `SessionInfo.Name`
+  update, reconnects, and writes a fresh initial snapshot for that session.
+  `./scripts/record-next-session.sh [file-or-dir]` wraps this with a timestamped
+  default under ignored `simulator/recordings/`.
 - Replay: `cargo run -p simulator -- replay <file>` — serves
   `ws://0.0.0.0:8000/ws` (address hardcoded), ~10 Hz, loops nothing: when the
   file ends it closes the socket and realtime's supervisor reconnects, so the
   fixture effectively replays in a loop.
+- Recordings may contain live SignalR Core frames (`0x1E` separators) or the
+  older legacy JSON shape. Replay and tests parse both through `signalr::parse_feed`.
 - `simulator/fixtures/sample.jsonl` is a tiny **synthetic** session (5
   drivers, 50 lines: telemetry/sectors/track positions for all of them, plus
   a full flag sequence — yellow/SC/VSC/red/restart) used by tests and
