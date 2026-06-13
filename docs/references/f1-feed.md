@@ -58,8 +58,10 @@ not duplicate it here. Notes that the list can't express:
   At ingest the `.z` suffix is stripped, so downstream code and `State` fields
   only ever see `CarData` / `Position`.
   Live probes on 2026-06-13 showed F1 can stream timing while omitting both
-  telemetry topics; the dashboard treats native `Position` as optional and has
-  a server-side OpenF1 location fallback when configured.
+  telemetry topics. The dashboard treats native `Position` as optional and does
+  not backfill it from another provider; restoring live car dots is future
+  authenticated-F1-feed work
+  ([0006](../plans/0006-no-openf1-dependency.md)).
 - `TimingData` — the main per-driver timing tree, by far the chattiest topic.
 - `TimingStats`, `TopThree`, `SessionData`, `TeamRadio` — ragged shapes, kept
   as loose JSON (belief 8 in

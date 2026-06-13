@@ -23,9 +23,7 @@ F1 SignalR feed ──► realtime (Rust)                       ──► dashbo
   renders the leaderboard / track map / telemetry. Imports TypeScript types **generated from
   the Rust model** — change a struct and the frontend types regenerate (CI fails on drift).
   The track map uses MultiViewer's public circuit geometry API and overlays live `Position`
-  coordinates from the F1 feed. If F1 omits coordinate telemetry during a live session,
-  the dashboard can fall back to OpenF1's live `location` endpoint when `OPENF1_API_KEY`
-  is configured server-side.
+  coordinates from the F1 feed when F1 provides that topic.
 - **simulator**: records a live session and replays it over WebSocket, so you can develop
   any day of the week with no live race.
 
@@ -85,9 +83,7 @@ Against the live feed, drop `F1_DEV_URL` (only works during a session weekend).
 `ADDRESS` (full bind address override), `PORT` (binds `0.0.0.0:$PORT` locally and
 `[::]:$PORT` on Railway when `ADDRESS` is unset; default port 80), `ORIGIN`
 (`;`-separated CORS origins), `RUST_LOG`, `F1_DEV_URL`
-(replay endpoint), and on the dashboard `REALTIME_URL`. Optional dashboard
-`OPENF1_API_KEY` enables the server-side live-location fallback for track-map dots
-when the native F1 `Position.z` topic is absent.
+(replay endpoint), and on the dashboard `REALTIME_URL`.
 
 ## Deploy
 
