@@ -24,17 +24,14 @@ overlaid directly.
   the newest available), reporting the served year in the
   `X-Muretto-Circuit-Year` response header. Misses are a clean JSON 404.
 - **Consumer:** `dashboard/src/components/TrackMap.tsx` fetches
-  `/api/circuits/{key}/{year}` (key/year from live `SessionInfo`, falling back
-  to the upcoming-race info). Any non-OK response or missing outline sets the
-  geometry to `null` and the **map simply doesn't render** — API trouble must
-  never break the leaderboard.
-- **Car dots:** native F1 `Position.z` remains the primary coordinate source.
-  Current live sessions can omit that topic even while timing data streams; in
-  that case `TrackMap` polls the server-side
-  `dashboard/src/app/api/openf1/location/route.ts` proxy when `OPENF1_API_KEY`
-  is set. The proxy returns OpenF1 `location` samples normalized to the same
-  `PositionEntry` shape. It is disabled for delayed views so live fallback
-  coordinates are not mixed into replay-buffered timing snapshots.
+  `/api/circuits/{key}/{year}` using key/year from live `SessionInfo`. Any
+  non-OK response or missing outline sets the geometry to `null` and the **map
+  simply doesn't render** — API trouble must never break the leaderboard.
+- **Car dots:** native F1 `Position.z` is the only coordinate source. Current
+  live sessions can omit that topic even while timing data streams; in that
+  case the outline and flag overlays can render, but cars do not. Restoring car
+  dots requires future authenticated-F1-feed work
+  ([0006](../plans/0006-no-openf1-dependency.md)).
 - Besides the outline and `corners`, the map reads `marshalSectors`
   (`number` + `trackPosition` in outline space). These are the "TRACK SECTOR
   n" numbers race control uses, so the outline can be split at marshal-post

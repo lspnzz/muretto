@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import type { UpcomingRace, UpcomingRaceSession } from "@/types/UpcomingRace";
 
 const JOLPICA_CURRENT_SEASON = "https://api.jolpi.ca/ergast/f1/current.json";
-const OPENF1_MEETINGS = "https://api.openf1.org/v1/meetings";
 const REVALIDATE_SECONDS = 60 * 60 * 6;
 const RACE_GRACE_MS = 4 * 60 * 60 * 1000;
 
@@ -49,15 +48,6 @@ type JolpicaScheduleResponse = {
   };
 };
 
-type OpenF1Meeting = {
-  circuit_key?: number;
-  circuit_short_name?: string;
-  country_name?: string;
-  location?: string;
-  meeting_name?: string;
-  meeting_official_name?: string;
-};
-
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
@@ -85,7 +75,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No upcoming race found" }, { status: 404 });
   }
 
-  const json = NextResponse.json(await withCircuitKey(race));
+  const json = NextResponse.json(race);
   json.headers.set("Cache-Control", "public, s-maxage=900, stale-while-revalidate=3600");
   return json;
 }
@@ -137,66 +127,4 @@ function parseNow(value: string | null) {
   if (!value) return new Date();
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-}
-
-async function withCircuitKey(race: UpcomingRace): Promise<UpcomingRace> {
-  const season = Number(race.season) || parseYear(race.raceIso);
-  if (!Number.isInteger(season)) return race;
-
-  try {
-    const response = await fetch(`${OPENF1_MEETINGS}?year=${season}`, {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "muretto-dashboard/0.1",
-      },
-      next: { revalidate: REVALIDATE_SECONDS },
-      signal: AbortSignal.timeout(3_000),
-    });
-    if (!response.ok) return race;
-
-    const meetings = (await response.json()) as OpenF1Meeting[];
-    const meeting = findOpenF1Meeting(race, meetings);
-    return meeting?.circuit_key ? { ...race, circuitKey: meeting.circuit_key } : race;
-  } catch {
-    return race;
-  }
-}
-
-function findOpenF1Meeting(race: UpcomingRace, meetings: OpenF1Meeting[]) {
-  const raceName = normalizeName(race.raceName);
-  const circuitName = normalizeName(race.circuitName);
-  const locality = normalizeName(race.locality);
-  const country = normalizeName(race.country);
-
-  return (
-    meetings.find((meeting) => normalizeName(meeting.meeting_name) === raceName) ??
-    meetings.find((meeting) => normalizeName(meeting.meeting_official_name).includes(raceName)) ??
-    meetings.find((meeting) => {
-      const meetingCircuit = normalizeName(meeting.circuit_short_name);
-      const meetingLocation = normalizeName(meeting.location);
-      const meetingCountry = normalizeName(meeting.country_name);
-
-      return Boolean(
-        meetingCircuit &&
-          circuitName.includes(meetingCircuit) &&
-          (!country || !meetingCountry || meetingCountry === country) &&
-          (!locality || !meetingLocation || meetingLocation === locality),
-      );
-    })
-  );
-}
-
-function normalizeName(value: string | undefined) {
-  return (value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function parseYear(value: string | undefined) {
-  const match = value?.match(/^(\d{4})/);
-  return match ? Number(match[1]) : 0;
 }

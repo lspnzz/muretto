@@ -8,8 +8,6 @@ import type { TrackMapFlags } from "@/lib/flags";
 import { orderedDrivers } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import type { PositionCar, State } from "@/types";
-import type { PositionEntry } from "@/types/PositionEntry";
-import type { UpcomingRace } from "@/types/UpcomingRace";
 
 type CircuitGeometry = {
   circuitName?: string;
@@ -47,8 +45,6 @@ type TrackPoint = RawPoint & {
 const WIDTH = 200;
 const HEIGHT = 80;
 const PAD = 6;
-const OPENF1_POLL_MS = 2_000;
-const OPENF1_LOOKBACK_MS = 10_000;
 
 // Hexes match TRACK_STATUS in lib/trackStatus.ts (amber-400 / red-500).
 const TRACK_DEFAULT = "#3f3f46";
@@ -85,10 +81,9 @@ function trackColorFor(flags: TrackMapFlags): string {
  */
 export function TrackMap({ highlight }: { highlight?: string }) {
   const state = useDataStore((s) => s.state);
-  const delayMs = useDataStore((s) => s.delayMs);
   const { race } = useUpcomingRace();
   const nativeLatest = state.Position?.Position.at(-1) ?? null;
-  const { circuitKey, year } = useMemo(() => circuitRef(state, race), [state, race]);
+  const { circuitKey, year } = useMemo(() => circuitRef(state), [state]);
   const [geometry, setGeometry] = useState<CircuitGeometry | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -118,13 +113,7 @@ export function TrackMap({ highlight }: { highlight?: string }) {
   }, [circuitKey, year]);
 
   const rows = orderedDrivers(state);
-  const driverKey = rows.map((row) => row.racingNumber).join(",");
-  const fallbackLatest = useOpenF1PositionFallback({
-    driverKey,
-    enabled: !nativeLatest && delayMs === 0,
-    sessionKey: state.SessionInfo?.Key ?? 0,
-  });
-  const latest = nativeLatest ?? fallbackLatest;
+  const latest = nativeLatest;
   const rowByNumber = new Map(rows.map((row) => [row.racingNumber, row]));
   const latestEntries: Record<string, PositionCar | undefined> = latest?.Entries ?? {};
   const cars: TrackPoint[] = Object.entries(latestEntries)
@@ -244,88 +233,11 @@ export function TrackMap({ highlight }: { highlight?: string }) {
   );
 }
 
-function useOpenF1PositionFallback({
-  driverKey,
-  enabled,
-  sessionKey,
-}: {
-  driverKey: string;
-  enabled: boolean;
-  sessionKey: number;
-}) {
-  const [position, setPosition] = useState<PositionEntry | null>(null);
-  const [disabledKey, setDisabledKey] = useState<string | null>(null);
-  const fallbackKey = sessionKey && driverKey ? `${sessionKey}:${driverKey}` : "";
-
-  useEffect(() => {
-    if (!enabled || !fallbackKey || disabledKey === fallbackKey) {
-      setPosition(null);
-      return;
-    }
-
-    let stopped = false;
-    let controller: AbortController | null = null;
-
-    async function load() {
-      controller?.abort();
-      controller = new AbortController();
-      const params = new URLSearchParams({
-        drivers: driverKey,
-        lookbackMs: String(OPENF1_LOOKBACK_MS),
-        sessionKey: String(sessionKey),
-      });
-
-      try {
-        const response = await fetch(`/api/openf1/location?${params}`, {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-
-        if (stopped) return;
-        if (response.status === 204 || response.status === 401 || response.status === 403) {
-          setDisabledKey(fallbackKey);
-          setPosition(null);
-          return;
-        }
-        if (!response.ok) return;
-
-        const body = (await response.json()) as unknown;
-        setPosition(isPositionEntry(body) ? body : null);
-      } catch (error: unknown) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          setPosition(null);
-        }
-      }
-    }
-
-    load();
-    const interval = window.setInterval(load, OPENF1_POLL_MS);
-
-    return () => {
-      stopped = true;
-      controller?.abort();
-      window.clearInterval(interval);
-    };
-  }, [disabledKey, driverKey, enabled, fallbackKey, sessionKey]);
-
-  return position;
-}
-
-function isPositionEntry(value: unknown): value is PositionEntry {
-  if (!value || typeof value !== "object") return false;
-  const entry = value as Partial<PositionEntry>;
-  return typeof entry.Timestamp === "string" && Boolean(entry.Entries);
-}
-
-function circuitRef(state: State, race: UpcomingRace | undefined) {
+function circuitRef(state: State) {
   const session = state.SessionInfo;
   const circuitKey = session?.Meeting?.Circuit?.Key || 0;
   const year = parseYear(session?.StartDate);
-  if (circuitKey && year) return { circuitKey, year };
-
-  const raceCircuitKey = race?.circuitKey ?? 0;
-  const raceYear = parseYear(race?.season) || parseYear(race?.raceIso);
-  return { circuitKey: raceCircuitKey, year: raceYear };
+  return { circuitKey, year };
 }
 
 function parseYear(value: string | undefined) {
