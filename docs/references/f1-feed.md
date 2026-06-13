@@ -95,8 +95,11 @@ the checked-in recording.
 
 `realtime` re-exposes the feed as SSE (`/api/realtime`): one `initial` event
 (full `State`) on connect, then `update` events of `{"<Topic>": <delta>}`. A
-lagging subscriber is resynced with a fresh `initial` instead of dropping
-deltas (`realtime/src/server/mod.rs`).
+mid-stream `initial` means **replace your state, don't fold** — it's sent to
+a lagging subscriber instead of dropping deltas, and to everyone after a
+session reset (feed reconnect / new session), where folding would leave
+removed keys behind (`realtime/src/server/mod.rs`,
+`realtime/src/ingest/mod.rs::broadcast_full`).
 
 ## Recording and replaying sessions
 
@@ -108,8 +111,9 @@ deltas (`realtime/src/server/mod.rs`).
   file ends it closes the socket and realtime's supervisor reconnects, so the
   fixture effectively replays in a loop.
 - `simulator/fixtures/sample.jsonl` is a tiny **synthetic** session (5
-  drivers, 20 lines, telemetry/sectors/track positions for all of them) used
-  by tests and `scripts/smoke.sh`.
+  drivers, 50 lines: telemetry/sectors/track positions for all of them, plus
+  a full flag sequence — yellow/SC/VSC/red/restart) used by tests and
+  `scripts/smoke.sh`.
 
 ## Code map
 

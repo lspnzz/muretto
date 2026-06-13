@@ -1,7 +1,9 @@
 //! HTTP/SSE server. Streams the live state to browsers: a full `initial`
 //! snapshot on connect, then `update` deltas off the broadcast channel. A
 //! subscriber that lags past the channel buffer is resynced with a fresh
-//! snapshot rather than silently dropping data.
+//! snapshot rather than silently dropping data, and a session reset upstream
+//! re-broadcasts as `initial` so clients replace state instead of folding
+//! onto a stale one.
 
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -22,11 +24,22 @@ use tracing::{debug, info, warn};
 
 use crate::model::State;
 
+/// A payload published to SSE subscribers. `Update` deltas fold into client
+/// state; an `Initial` snapshot replaces it outright. The distinction matters
+/// after a session reset: folding a full snapshot can't remove keys the reset
+/// dropped (e.g. stale `RaceControlMessages` entries), so it must arrive as
+/// `initial`.
+#[derive(Clone, Debug)]
+pub enum Broadcast {
+    Initial(String),
+    Update(String),
+}
+
 /// Shared server state: the canonical state and the update broadcaster.
 #[derive(Clone)]
 pub struct Context {
     pub state: Arc<RwLock<State>>,
-    pub tx: broadcast::Sender<String>,
+    pub tx: broadcast::Sender<Broadcast>,
 }
 
 /// Build the router with CORS configured from the given origins.
@@ -87,7 +100,8 @@ async fn sse(
 
         loop {
             match rx.recv().await {
-                Ok(payload) => yield Ok(Event::default().event("update").data(payload)),
+                Ok(Broadcast::Update(payload)) => yield Ok(Event::default().event("update").data(payload)),
+                Ok(Broadcast::Initial(payload)) => yield Ok(Event::default().event("initial").data(payload)),
                 Err(broadcast::error::RecvError::Lagged(skipped)) => {
                     warn!(skipped, "sse subscriber lagged; resyncing with snapshot");
                     yield Ok(Event::default().event("initial").data(snapshot(&ctx).await));

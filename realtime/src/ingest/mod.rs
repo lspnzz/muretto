@@ -20,13 +20,14 @@ use tracing::{info, trace, warn};
 
 use crate::config;
 use crate::model::State;
+use crate::server::Broadcast;
 
 const RECONNECT_DELAY: Duration = Duration::from_secs(2);
 
 /// Run the ingest loop until cancelled, reconnecting on error/session change.
 pub async fn run_supervised(
     state: Arc<RwLock<State>>,
-    tx: broadcast::Sender<String>,
+    tx: broadcast::Sender<Broadcast>,
     cancel: CancellationToken,
 ) {
     loop {
@@ -51,7 +52,10 @@ pub async fn run_supervised(
 
 /// One connect → subscribe → listen cycle. Returns `Ok(())` on a clean end
 /// (socket close or detected session change), `Err` on connection failure.
-async fn ingest_session(state: &Arc<RwLock<State>>, tx: &broadcast::Sender<String>) -> Result<()> {
+async fn ingest_session(
+    state: &Arc<RwLock<State>>,
+    tx: &broadcast::Sender<Broadcast>,
+) -> Result<()> {
     let dev_url = config::dev_url();
     let mut client =
         crate::signalr::connect(config::F1_SIGNALR_URL, config::F1_HUB, dev_url.as_deref()).await?;
@@ -88,7 +92,11 @@ async fn ingest_session(state: &Arc<RwLock<State>>, tx: &broadcast::Sender<Strin
 }
 
 /// Reset state to the new session's initial snapshot and seed each topic.
-async fn apply_initial(state: &Arc<RwLock<State>>, tx: &broadcast::Sender<String>, initial: Value) {
+async fn apply_initial(
+    state: &Arc<RwLock<State>>,
+    tx: &broadcast::Sender<Broadcast>,
+    initial: Value,
+) {
     let Value::Object(topics) = initial else {
         return;
     };
@@ -103,7 +111,8 @@ async fn apply_initial(state: &Arc<RwLock<State>>, tx: &broadcast::Sender<String
             }
         }
     }
-    // Nudge connected clients to pull the fresh snapshot via reconnect-on-initial.
+    // State was replaced, not patched — connected clients must replace too,
+    // so this goes out as `initial` rather than a foldable `update`.
     broadcast_full(state, tx).await;
 }
 
@@ -111,7 +120,7 @@ async fn apply_initial(state: &Arc<RwLock<State>>, tx: &broadcast::Sender<String
 /// delta as `{ "<Topic>": <data> }`.
 async fn handle(
     state: &Arc<RwLock<State>>,
-    tx: &broadcast::Sender<String>,
+    tx: &broadcast::Sender<Broadcast>,
     topic: &str,
     data: Value,
 ) {
@@ -128,16 +137,17 @@ async fn handle(
     obj.insert(topic.to_string(), data);
     if let Ok(payload) = serde_json::to_string(&Value::Object(obj)) {
         // Err just means no subscribers; that's fine.
-        let _ = tx.send(payload);
+        let _ = tx.send(Broadcast::Update(payload));
     }
 }
 
-/// Broadcast the whole state as a single update so live clients resync after a
-/// session reset.
-async fn broadcast_full(state: &Arc<RwLock<State>>, tx: &broadcast::Sender<String>) {
+/// Broadcast the whole state as a fresh `initial` so live clients replace
+/// their state after a session reset — folding it as an update would leave
+/// keys the reset dropped (stale race-control messages, departed drivers).
+async fn broadcast_full(state: &Arc<RwLock<State>>, tx: &broadcast::Sender<Broadcast>) {
     let snapshot = serde_json::to_value(&*state.read().await).unwrap_or_else(|_| json!({}));
     if let Ok(payload) = serde_json::to_string(&snapshot) {
-        let _ = tx.send(payload);
+        let _ = tx.send(Broadcast::Initial(payload));
     }
 }
 
@@ -179,6 +189,21 @@ mod tests {
             guard.track_status.as_ref().map(|t| t.status.as_str()),
             Some("1")
         );
+    }
+
+    #[tokio::test]
+    async fn session_reset_broadcasts_initial_while_deltas_stay_updates() {
+        let state = Arc::new(RwLock::new(State::default()));
+        let (tx, mut rx) = broadcast::channel(8);
+
+        apply_initial(&state, &tx, json!({ "TrackStatus": { "Status": "1" } })).await;
+        assert!(matches!(rx.recv().await, Ok(Broadcast::Initial(_))));
+
+        handle(&state, &tx, "TrackStatus", json!({ "Status": "2" })).await;
+        match rx.recv().await {
+            Ok(Broadcast::Update(payload)) => assert!(payload.contains("TrackStatus")),
+            other => panic!("expected an update broadcast, got {other:?}"),
+        }
     }
 
     #[tokio::test]

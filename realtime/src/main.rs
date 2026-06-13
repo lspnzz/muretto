@@ -8,7 +8,7 @@ use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use realtime::config;
 use realtime::ingest;
 use realtime::model::State;
-use realtime::server::{self, Context};
+use realtime::server::{self, Broadcast, Context};
 
 /// Broadcast channel depth. Large enough that a briefly-slow SSE client rarely
 /// lags; if it does, the server resyncs it with a fresh snapshot.
@@ -24,7 +24,7 @@ async fn main() -> anyhow::Result<()> {
     info!("muretto realtime starting");
 
     let state = Arc::new(RwLock::new(State::default()));
-    let (tx, _rx) = broadcast::channel::<String>(BROADCAST_CAPACITY);
+    let (tx, _rx) = broadcast::channel::<Broadcast>(BROADCAST_CAPACITY);
     let cancel = CancellationToken::new();
 
     let ingest_handle = tokio::spawn(ingest::run_supervised(

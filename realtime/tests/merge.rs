@@ -182,7 +182,18 @@ fn replay_fixture_initial_then_partial_sequence() {
     let messages = &s.race_control_messages.as_ref().unwrap().messages;
     assert_eq!(messages["0"].message, "GREEN LIGHT - PIT EXIT OPEN");
     assert_eq!(messages["2"].lap, Some(12)); // keyed append from the delta
-    assert_eq!(messages["3"].message, "OVERTAKE ENABLED"); // 2026 mode badge
+
+    // The flag sequence (sector yellows → SC → VSC → red → restart) folds to a
+    // clear track, with every keyed message append preserved in the log.
+    assert_eq!(s.track_status.as_ref().unwrap().status, "1");
+    assert_eq!(messages["3"].flag.as_deref(), Some("YELLOW"));
+    assert_eq!(messages["3"].sector, Some(2));
+    assert_eq!(messages["4"].flag.as_deref(), Some("DOUBLE YELLOW"));
+    assert_eq!(messages["7"].category, "SafetyCar");
+    assert_eq!(messages["11"].flag.as_deref(), Some("RED"));
+    assert_eq!(messages["12"].message, "GREEN LIGHT - PIT EXIT OPEN");
+    // 2026 overtake-mode badge: appended after the restart (plan 0005).
+    assert_eq!(messages["13"].message, "OVERTAKE ENABLED");
 }
 
 fn apply_decoded(state: &mut State, topic: &str, data: Value) {

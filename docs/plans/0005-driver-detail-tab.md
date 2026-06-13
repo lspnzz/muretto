@@ -50,11 +50,12 @@ per-driver view can honestly show:
   sends `FL`/`ST` — speed traps could never populate. Explicit serde renames
   added; types regenerated (the only Rust change).
 - **Fixture enrichment** (offline verifiability, belief 7): `CarData` now
-  covers all five drivers with values that vary frame to frame (two extra
-  feed frames for trace motion; snapshot keeps HAM speed 280 — pinned by
-  `decompress.rs`); snapshot `TimingData` lines gain `Speeds`; one
-  `OVERTAKE ENABLED` race-control message exercises the badge. run-stack
-  SKILL.md frame count updated.
+  covers all five drivers with values that vary frame to frame (extra feed
+  frames so the gauge animates through the replay loop; snapshot keeps HAM
+  speed 280 — pinned by `decompress.rs`); snapshot `TimingData` lines gain
+  `Speeds`; an `OVERTAKE ENABLED` race-control message (appended after the
+  flag sequence, index 13) exercises the badge. run-stack SKILL.md and
+  f1-feed.md frame counts updated.
 
 ## Consequences
 

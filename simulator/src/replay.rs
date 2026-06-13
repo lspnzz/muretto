@@ -16,8 +16,17 @@ use axum::{
 use tokio::net::TcpListener;
 use tracing::{info, warn};
 
-/// Delay between feed frames during replay (~10 Hz, approximating live cadence).
-const FRAME_DELAY: Duration = Duration::from_millis(100);
+/// Delay between feed frames during replay (~10 Hz, approximating live
+/// cadence). `REPLAY_FRAME_DELAY_MS` slows the loop down so transient states
+/// — sector yellows, safety cars, pit stops — sit on screen long enough to
+/// eyeball in the dashboard.
+fn frame_delay() -> Duration {
+    let ms = std::env::var("REPLAY_FRAME_DELAY_MS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(100);
+    Duration::from_millis(ms)
+}
 
 const ADDRESS: &str = "0.0.0.0:8000";
 
@@ -47,6 +56,7 @@ async fn ws_handler(ws: WebSocketUpgrade, State(lines): State<Arc<Vec<String>>>)
 
 async fn stream_recording(mut socket: WebSocket, lines: Arc<Vec<String>>) {
     info!("replay client connected");
+    let frame_delay = frame_delay();
     let mut iter = lines.iter();
 
     // First line is the `{"R": ...}` snapshot — send it as the subscribe reply.
@@ -68,7 +78,7 @@ async fn stream_recording(mut socket: WebSocket, lines: Arc<Vec<String>>) {
             warn!("replay client disconnected");
             return;
         }
-        tokio::time::sleep(FRAME_DELAY).await;
+        tokio::time::sleep(frame_delay).await;
     }
     info!("replay finished; closing");
     let _ = socket.send(Message::Close(None)).await;
