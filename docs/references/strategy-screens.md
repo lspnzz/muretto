@@ -82,8 +82,9 @@ and plan [0004](../plans/0004-timings-tab-restyle.md):
   set-but-not-best `amber`/`yellow`, no value `zinc-500`, pit-lane segment
   `blue`. Segment `Status` codes: 0 unset, 2048 yellow, 2049 personal best,
   2051 overall best, 2052 treat as yellow, 2064 pit lane.
-- **Gap column**: interval to car ahead on top (`emerald` while `Catching`),
-  gap to leader below; both arrive preformatted (`"+1.234"`, `"1 L"`).
+- **Gap column**: gap to leader on top, interval to car ahead below
+  (`emerald` while `Catching`); both arrive preformatted (`"+1.234"`,
+  `"1 L"`).
   Qualifying uses `Stats[SessionPart−1].TimeDiffToFastest` /
   `TimeDifftoPositionAhead` (feed typo is real).
 - **Tyres**: last entry of `TimingAppData.Lines[nr].Stints` is the current

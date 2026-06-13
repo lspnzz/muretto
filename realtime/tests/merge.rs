@@ -87,6 +87,46 @@ fn timing_data_nested_sector_segment_partial() {
 }
 
 #[test]
+fn timing_data_stats_accepts_qualifying_time_diff_typo() {
+    let mut s = State::default();
+    initial(
+        &mut s,
+        "TimingData",
+        json!({
+            "SessionPart": 2,
+            "Lines": {
+                "44": {
+                    "RacingNumber": "44",
+                    "Position": "1",
+                    "Stats": [
+                        {
+                            "TimeDiffToFastest": "",
+                            "TimeDifftoPositionAhead": ""
+                        },
+                        {
+                            "TimeDiffToFastest": "+0.231",
+                            "TimeDifftoPositionAhead": "+0.120"
+                        }
+                    ]
+                }
+            }
+        }),
+    );
+
+    let timing = s.timing_data.as_ref().unwrap();
+    let line = &timing.lines["44"];
+    assert_eq!(timing.session_part, Some(2));
+    assert_eq!(
+        line.stats["1"].time_diff_to_fastest.as_deref(),
+        Some("+0.231")
+    );
+    assert_eq!(
+        line.stats["1"].time_diff_to_position_ahead.as_deref(),
+        Some("+0.120")
+    );
+}
+
+#[test]
 fn race_control_messages_append_via_index() {
     let mut s = State::default();
     initial(

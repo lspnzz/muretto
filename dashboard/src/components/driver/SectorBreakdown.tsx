@@ -3,6 +3,7 @@
 import { segmentClass, segmentList, sectorValueClass } from "@/components/timings/SectorsCell";
 import { orderedStints } from "@/components/timings/TimingRow";
 import { bestSectorPosition, bestSectorValue, personalBestLapPosition } from "@/lib/ragged";
+import { timingGapDisplay } from "@/lib/timingGaps";
 import { tyreHex } from "@/lib/tyre";
 import { useDataStore } from "@/stores/useDataStore";
 import type { LapVal, Sector } from "@/types";
@@ -45,6 +46,7 @@ export function SectorBreakdown({ racingNumber }: { racingNumber: string }) {
     ["ST", timing.Speeds.ST],
   ];
   const currentStint = stints.at(-1);
+  const gaps = timingGapDisplay(timing, state.TimingData?.SessionPart);
 
   return (
     <section className="rounded-lg border border-zinc-800">
@@ -59,8 +61,8 @@ export function SectorBreakdown({ racingNumber }: { racingNumber: string }) {
 
       <div className="flex flex-col gap-4 p-4">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label="Gap to leader" value={timing.GapToLeader || "—"} />
-          <Stat label="Interval" value={timing.IntervalToPositionAhead?.Value || "—"} />
+          <Stat label="Gap to leader" value={gaps.gap || "—"} />
+          <Stat label="Interval" value={gaps.interval || "—"} />
           <Stat
             label="Last lap"
             value={timing.LastLapTime.Value || "—"}

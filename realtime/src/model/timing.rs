@@ -29,7 +29,10 @@ pub struct TimingDataDriver {
     pub gap_to_leader: String,
     pub interval_to_position_ahead: Option<Interval>,
     pub time_diff_to_fastest: Option<String>,
+    #[serde(alias = "TimeDifftoPositionAhead")]
     pub time_diff_to_position_ahead: Option<String>,
+    #[serde(deserialize_with = "crate::model::de::index_map_or_array")]
+    pub stats: IndexMap<String, TimingDataStats>,
     pub retired: bool,
     pub in_pit: bool,
     pub pit_out: bool,
@@ -50,6 +53,14 @@ pub struct TimingDataDriver {
 pub struct Interval {
     pub value: String,
     pub catching: bool,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, TS, Merge)]
+#[serde(default, rename_all = "PascalCase")]
+pub struct TimingDataStats {
+    pub time_diff_to_fastest: Option<String>,
+    #[serde(alias = "TimeDifftoPositionAhead")]
+    pub time_diff_to_position_ahead: Option<String>,
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, TS, Merge)]

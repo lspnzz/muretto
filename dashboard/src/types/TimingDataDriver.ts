@@ -3,5 +3,6 @@ import type { Interval } from "./Interval";
 import type { LapVal } from "./LapVal";
 import type { Sector } from "./Sector";
 import type { Speeds } from "./Speeds";
+import type { TimingDataStats } from "./TimingDataStats";
 
-export type TimingDataDriver = { RacingNumber: string, Line: number, Position: string, ShowPosition: boolean, GapToLeader: string, IntervalToPositionAhead: Interval | null, TimeDiffToFastest: string | null, TimeDiffToPositionAhead: string | null, Retired: boolean, InPit: boolean, PitOut: boolean, Stopped: boolean, Status: number, NumberOfLaps: number | null, KnockedOut: boolean | null, Cutoff: boolean | null, Sectors: { [key in string]?: Sector }, Speeds: Speeds, BestLapTime: LapVal, LastLapTime: LapVal, };
+export type TimingDataDriver = { RacingNumber: string, Line: number, Position: string, ShowPosition: boolean, GapToLeader: string, IntervalToPositionAhead: Interval | null, TimeDiffToFastest: string | null, TimeDiffToPositionAhead: string | null, Stats: { [key in string]?: TimingDataStats }, Retired: boolean, InPit: boolean, PitOut: boolean, Stopped: boolean, Status: number, NumberOfLaps: number | null, KnockedOut: boolean | null, Cutoff: boolean | null, Sectors: { [key in string]?: Sector }, Speeds: Speeds, BestLapTime: LapVal, LastLapTime: LapVal, };
