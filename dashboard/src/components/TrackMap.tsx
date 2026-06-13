@@ -41,7 +41,11 @@ const WIDTH = 200;
 const HEIGHT = 80;
 const PAD = 6;
 
-export function TrackMap() {
+/**
+ * Circuit outline with live car dots. With `highlight` set (the driver tab),
+ * the named car keeps its label and pops; the rest dim and go label-less.
+ */
+export function TrackMap({ highlight }: { highlight?: string }) {
   const state = useDataStore((s) => s.state);
   const { race } = useUpcomingRace();
   const latest = state.Position?.Position.at(-1);
@@ -79,6 +83,10 @@ export function TrackMap() {
   const cars: TrackPoint[] = Object.entries(latest?.Entries ?? {})
     .flatMap(([racingNumber, car]) => carPoint(racingNumber, car, rowByNumber))
     .sort((a, b) => {
+      // Leaderboard order; the highlighted car draws last so it sits on top.
+      if (highlight && (a.racingNumber === highlight) !== (b.racingNumber === highlight)) {
+        return a.racingNumber === highlight ? 1 : -1;
+      }
       const left = rowByNumber.get(a.racingNumber)?.position ?? 999;
       const right = rowByNumber.get(b.racingNumber)?.position ?? 999;
       return left - right;
@@ -126,18 +134,33 @@ export function TrackMap() {
             </text>
           ))}
 
-          {drawing.cars.map((point) => (
-            <g key={point.racingNumber} transform={`translate(${point.x} ${point.y})`}>
-              <circle r="2.4" fill={point.color} className="stroke-black" strokeWidth="0.8" />
-              <text
-                x="3.6"
-                y={point.labelDy}
-                className="fill-zinc-100 font-mono text-[4px] font-semibold"
+          {drawing.cars.map((point) => {
+            const dimmed = Boolean(highlight) && point.racingNumber !== highlight;
+            const focused = highlight === point.racingNumber;
+            return (
+              <g
+                key={point.racingNumber}
+                transform={`translate(${point.x} ${point.y})`}
+                className={dimmed ? "opacity-40" : undefined}
               >
-                {point.label}
-              </text>
-            </g>
-          ))}
+                <circle
+                  r={focused ? 3 : dimmed ? 1.9 : 2.4}
+                  fill={point.color}
+                  className={focused ? "stroke-zinc-100" : "stroke-black"}
+                  strokeWidth="0.8"
+                />
+                {!dimmed && (
+                  <text
+                    x={focused ? 4.2 : 3.6}
+                    y={point.labelDy}
+                    className="fill-zinc-100 font-mono text-[4px] font-semibold"
+                  >
+                    {point.label}
+                  </text>
+                )}
+              </g>
+            );
+          })}
         </svg>
       ) : (
         <div className="text-sm text-zinc-600">

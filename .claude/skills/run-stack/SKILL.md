@@ -38,7 +38,7 @@ F1_DEV_URL=ws://replay:8000/ws docker compose --profile dev up --build
 - `curl -N http://127.0.0.1:4000/api/realtime` → `event: initial` immediately,
   then `event: update` at ~10 Hz
 - Dashboard shows a five-driver leaderboard (HAM, LEC, VER, NOR, ALO). The
-  fixture is 18 frames; replay closes at EOF and realtime reconnects ~2s
+  fixture is 20 frames; replay closes at EOF and realtime reconnects ~2s
   later, so it loops forever.
 - Broadcast sync (settings menu): the fixture's late `ExtrapolatedClock`
   frame arms “time left”, and its `Aborted → Started` pair arms “race start”

@@ -107,8 +107,9 @@ deltas (`realtime/src/server/mod.rs`).
   `ws://0.0.0.0:8000/ws` (address hardcoded), ~10 Hz, loops nothing: when the
   file ends it closes the socket and realtime's supervisor reconnects, so the
   fixture effectively replays in a loop.
-- `simulator/fixtures/sample.jsonl` is a tiny **synthetic** session (2
-  drivers, HAM/LEC, 6 lines) used by tests and `scripts/smoke.sh`.
+- `simulator/fixtures/sample.jsonl` is a tiny **synthetic** session (5
+  drivers, 20 lines, telemetry/sectors/track positions for all of them) used
+  by tests and `scripts/smoke.sh`.
 
 ## Code map
 
