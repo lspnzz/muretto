@@ -5,10 +5,11 @@ import { displayName } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import type { Driver, Stint, TimingDataDriver } from "@/types";
 import { DriverTag } from "./DriverTag";
-import { BestLapCell, GapCell, PitCell, TimeCell, TyreCell } from "./cells";
+import { BestLapCell, GapCell, PitCell, PitStatusCell, TimeCell, TyreCell } from "./cells";
 import { SectorsCell } from "./SectorsCell";
 
-export const TIMING_GRID = "5.25rem 3.25rem 2.5rem 5rem 5.25rem 5.25rem minmax(13rem, 1fr)";
+export const TIMING_GRID =
+  "5.25rem 3.25rem 2.5rem 5rem 5.25rem 5.25rem minmax(13rem, 1fr) 4.75rem";
 
 export function TimingRow({
   racingNumber,
@@ -46,6 +47,7 @@ export function TimingRow({
       <TimeCell timing={timing} />
       <BestLapCell timing={timing} hasFastest={hasFastest} />
       <SectorsCell sectors={timing.Sectors} />
+      <PitStatusCell timing={timing} />
     </div>
   );
 }

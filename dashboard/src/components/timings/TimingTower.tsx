@@ -8,7 +8,7 @@ import { useDataStore } from "@/stores/useDataStore";
 import type { TimingDataDriver } from "@/types";
 import { TIMING_GRID, TimingRow } from "./TimingRow";
 
-const HEADERS = ["Driver", "Tyre", "Pit", "Gap", "Time", "Best", "Sectors"];
+const HEADERS = ["Driver", "Tyre", "Pit", "Gap", "Time", "Best", "Sectors", ""];
 
 export function TimingTower() {
   const state = useDataStore((s) => s.state);
@@ -35,8 +35,10 @@ export function TimingTower() {
             className="grid items-center gap-x-2.5 border-b border-zinc-800 px-3 py-2 text-[11px] uppercase tracking-wide text-zinc-500"
             style={{ gridTemplateColumns: TIMING_GRID }}
           >
-            {HEADERS.map((header) => (
-              <p key={header}>{header}</p>
+            {HEADERS.map((header, index) => (
+              <p key={header || `empty-${index}`} aria-hidden={!header}>
+                {header}
+              </p>
             ))}
           </div>
           {/* Thin rules between rows — the FOM timing-page convention, not zebra. */}
