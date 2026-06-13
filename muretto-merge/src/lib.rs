@@ -56,11 +56,12 @@ impl Merge for Value {
     }
 }
 
-/// `Option<T>`: present `null` clears; otherwise merge into the inner value
-/// (deserializing fresh when currently `None`).
+/// `Option<T>`: present `null` clears; otherwise merge into the inner value.
+/// When currently `None`, deserialize whole values directly; object patches
+/// that don't deserialize cleanly seed a default and merge key-by-key.
 impl<T> Merge for Option<T>
 where
-    T: Merge + DeserializeOwned,
+    T: Merge + DeserializeOwned + Default,
 {
     fn merge(&mut self, patch: Value) {
         if patch.is_null() {
@@ -69,7 +70,15 @@ where
         }
         match self {
             Some(inner) => inner.merge(patch),
-            None => *self = serde_json::from_value(patch).ok(),
+            None => match serde_json::from_value(patch.clone()) {
+                Ok(value) => *self = Some(value),
+                Err(_) if patch.is_object() => {
+                    let mut value = T::default();
+                    value.merge(patch);
+                    *self = Some(value);
+                }
+                Err(_) => {}
+            },
         }
     }
 }
@@ -170,6 +179,21 @@ mod tests {
         };
         d.merge(json!({ "Position": null }));
         assert_eq!(d.position, None);
+    }
+
+    #[test]
+    fn option_initializes_object_by_merging_when_whole_deserialize_fails() {
+        let mut map: Option<IndexMap<String, Driver>> = None;
+
+        map.merge(json!({
+            "44": { "RacingNumber": "44", "Tla": "HAM", "Position": 1 },
+            "_kf": true,
+        }));
+
+        let map = map.unwrap();
+        assert_eq!(map.len(), 1);
+        assert_eq!(map["44"].tla, "HAM");
+        assert!(!map.contains_key("_kf"));
     }
 
     #[test]
