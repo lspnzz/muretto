@@ -43,7 +43,7 @@ export function TimingRow({
       />
       <TyreCell stints={stints} />
       <PitCell stints={stints} />
-      <GapCell timing={timing} />
+      <GapCell timing={timing} sessionPart={state.TimingData?.SessionPart} />
       <TimeCell timing={timing} />
       <BestLapCell timing={timing} hasFastest={hasFastest} />
       <SectorsCell sectors={timing.Sectors} />

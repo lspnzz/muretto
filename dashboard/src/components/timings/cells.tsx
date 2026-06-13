@@ -6,6 +6,7 @@
 // energy-deployment channel.
 
 import { tyreHex } from "@/lib/tyre";
+import { timingGapDisplay } from "@/lib/timingGaps";
 import type { Stint, TimingDataDriver } from "@/types";
 
 /** Compound-coloured tyre ring with current stint age inside. */
@@ -43,22 +44,32 @@ export function PitCell({ stints }: { stints: Stint[] }) {
   );
 }
 
-/** Interval to the car ahead over gap to the leader. */
-export function GapCell({ timing }: { timing: TimingDataDriver }) {
-  const interval = timing.IntervalToPositionAhead?.Value || timing.TimeDiffToPositionAhead || "";
-  const gap = timing.GapToLeader || timing.TimeDiffToFastest || "";
-  const catching = Boolean(timing.IntervalToPositionAhead?.Catching) && Boolean(interval);
+/** Gap to the leader over interval to the car ahead. */
+export function GapCell({
+  timing,
+  sessionPart,
+}: {
+  timing: TimingDataDriver;
+  sessionPart: number | null | undefined;
+}) {
+  const { gap, interval, catching } = timingGapDisplay(timing, sessionPart);
 
   return (
     <div className="justify-self-end text-right font-mono">
       <p
         className={`text-base leading-none font-medium tabular-nums ${
-          catching ? "text-emerald-500" : interval ? "" : "text-zinc-500"
+          gap ? "" : "text-zinc-500"
+        }`}
+      >
+        {gap || "-- ---"}
+      </p>
+      <p
+        className={`mt-1 text-xs leading-none tabular-nums ${
+          catching ? "text-emerald-500" : "text-zinc-500"
         }`}
       >
         {interval || "-- ---"}
       </p>
-      <p className="mt-1 text-xs leading-none tabular-nums text-zinc-500">{gap || "-- ---"}</p>
     </div>
   );
 }
