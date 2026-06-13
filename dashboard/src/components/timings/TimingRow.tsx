@@ -5,10 +5,10 @@ import { displayName } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import type { Driver, Stint, TimingDataDriver } from "@/types";
 import { DriverTag } from "./DriverTag";
-import { GapCell, LapTimeCell, TyreCell } from "./cells";
+import { BestLapCell, GapCell, PitCell, TimeCell, TyreCell } from "./cells";
 import { SectorsCell } from "./SectorsCell";
 
-export const TIMING_GRID = "10rem 4.25rem 4.75rem 5.25rem auto";
+export const TIMING_GRID = "5.25rem 3.25rem 2.5rem 5rem 5.25rem 5.25rem minmax(13rem, 1fr)";
 
 export function TimingRow({
   racingNumber,
@@ -37,19 +37,21 @@ export function TimingRow({
     >
       <DriverTag
         position={timing.Position || String(position)}
-        name={displayName(driver, racingNumber)}
+        name={shortDriverName(displayName(driver, racingNumber))}
         teamColour={driver?.TeamColour}
       />
       <TyreCell stints={stints} />
+      <PitCell stints={stints} />
       <GapCell timing={timing} />
-      <LapTimeCell timing={timing} hasFastest={hasFastest} />
-      <SectorsCell
-        racingNumber={racingNumber}
-        sectors={timing.Sectors}
-        timingStats={state.TimingStats}
-      />
+      <TimeCell timing={timing} />
+      <BestLapCell timing={timing} hasFastest={hasFastest} />
+      <SectorsCell sectors={timing.Sectors} />
     </div>
   );
+}
+
+function shortDriverName(name: string): string {
+  return name.replace(/\s+/g, "").slice(0, 3).toUpperCase();
 }
 
 /** Stints in stint-number order (exported for the driver tab's stint line). */

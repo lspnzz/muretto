@@ -3,19 +3,19 @@
 // The small leaderboard cells. Column semantics and colour conventions:
 // docs/references/strategy-screens.md (re-implemented, not copied — AGPL).
 // No DRS column: post-2026 cars have none and the feed carries no
-// energy-deployment channel; pit state rides the gap column instead.
+// energy-deployment channel; in/out pit state rides the gap column instead.
 
 import { tyreHex } from "@/lib/tyre";
 import type { Stint, TimingDataDriver } from "@/types";
 
-/** Current compound ring, stint age, and stop count. */
+/** Compound-coloured tyre ring with current stint age inside. */
 export function TyreCell({ stints }: { stints: Stint[] }) {
   const current = stints.at(-1);
   const compound = current?.Compound?.toUpperCase() ?? "";
-  const used = current?.New === "FALSE";
+  const laps = current?.TotalLaps ?? 0;
 
   return (
-    <div className="flex items-center gap-1.5 place-self-start">
+    <div className="justify-self-start">
       <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0" aria-hidden>
         <circle cx={16} cy={16} r={12} fill="none" stroke={tyreHex(compound)} strokeWidth={4.5} />
         <text
@@ -27,18 +27,18 @@ export function TyreCell({ stints }: { stints: Stint[] }) {
           fontWeight={700}
           fill={tyreHex(compound)}
         >
-          {compound ? compound[0] : "?"}
+          {laps}
         </text>
       </svg>
-      <div>
-        <p className="text-sm leading-none font-medium">
-          L {current?.TotalLaps ?? 0}
-          {used ? "*" : ""}
-        </p>
-        <p className="mt-1 text-xs leading-none text-zinc-500">
-          PIT {Math.max(0, stints.length - 1)}
-        </p>
-      </div>
+    </div>
+  );
+}
+
+/** Stop count derived from stint count. */
+export function PitCell({ stints }: { stints: Stint[] }) {
+  return (
+    <div className="justify-self-start font-mono text-base leading-none font-medium tabular-nums">
+      {Math.max(0, stints.length - 1)}
     </div>
   );
 }
@@ -52,7 +52,7 @@ export function GapCell({ timing }: { timing: TimingDataDriver }) {
     !pitWord && Boolean(timing.IntervalToPositionAhead?.Catching) && Boolean(interval);
 
   return (
-    <div className="place-self-start font-mono">
+    <div className="justify-self-end text-right font-mono">
       <p
         className={`text-base leading-none font-medium tabular-nums ${
           pitWord
@@ -71,14 +71,8 @@ export function GapCell({ timing }: { timing: TimingDataDriver }) {
   );
 }
 
-/** Last lap over personal best, with fastest-lap colouring. */
-export function LapTimeCell({
-  timing,
-  hasFastest,
-}: {
-  timing: TimingDataDriver;
-  hasFastest: boolean;
-}) {
+/** Last lap time, with fastest-lap colouring. */
+export function TimeCell({ timing }: { timing: TimingDataDriver }) {
   const last = timing.LastLapTime;
   const lastCls = last?.OverallFastest
     ? "text-violet-500"
@@ -89,17 +83,29 @@ export function LapTimeCell({
         : "text-zinc-500";
 
   return (
-    <div className="place-self-start font-mono">
-      <p className={`text-base leading-none font-medium tabular-nums ${lastCls}`}>
-        {last?.Value || "-- -- ---"}
-      </p>
-      <p
-        className={`mt-1 text-xs leading-none tabular-nums ${
-          hasFastest ? "text-violet-500" : "text-zinc-500"
-        }`}
-      >
-        {timing.BestLapTime?.Value || "-- -- ---"}
-      </p>
+    <div
+      className={`justify-self-end text-right font-mono text-base leading-none font-medium tabular-nums ${lastCls}`}
+    >
+      {last?.Value || "-- -- ---"}
+    </div>
+  );
+}
+
+/** Personal best lap time, violet when it is the session best. */
+export function BestLapCell({
+  timing,
+  hasFastest,
+}: {
+  timing: TimingDataDriver;
+  hasFastest: boolean;
+}) {
+  return (
+    <div
+      className={`justify-self-end text-right font-mono text-base leading-none font-medium tabular-nums ${
+        hasFastest ? "text-violet-500" : timing.BestLapTime?.Value ? "" : "text-zinc-500"
+      }`}
+    >
+      {timing.BestLapTime?.Value || "-- -- ---"}
     </div>
   );
 }

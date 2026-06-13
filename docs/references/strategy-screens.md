@@ -135,14 +135,17 @@ web product at f1academy.com/livetiming, the
   replacement signal — `CarData` channels remain 0/2/3/4/5/45 with nothing
   for energy deployment or the manual-override mode. No info column either:
   pit state (`InPit`/`PitOut`) rides the gap column in cyan.
-- **Driver cell: position + surname**, deliberately diverging from both
-  FOM screens (tower and app identify drivers by TLA): white position
-  number (leader's on the F1-red `#e10600` box), then the driver's name in
-  team colour — `LastName`, falling back through `FullName`/
-  `BroadcastName`/`Tla` for sparse feeds. No racing number anywhere.
+- **Driver cell: position + three-letter name code**, deliberately diverging
+  from both FOM screens (tower and app identify drivers by TLA): white
+  position number (leader's on the F1-red `#e10600` box), then the first
+  three letters of the display name in team colour. No racing number anywhere.
 - **Track map spans the container above the leaderboard**, in its own
   panel; the projection letterboxes the circuit (uniform scale, centered)
-  so the wide canvas never distorts it. No separate session strip: the
-  leaderboard panel's title line carries the session name, running clock,
-  and track-status dot. The panel uses FOM-style thin row rules and
+  so the wide canvas never distorts it. Flag states replace the map title as
+  plain coloured text, with no badge inside the SVG. No separate session
+  strip: the leaderboard panel's title line carries the session name, running
+  clock, and track-status dot. The panel uses FOM-style thin row rules and
   monospace timing figures, in the same panel grammar as the other tabs.
+- **Timing cells are split for scan speed**: current tyre age sits inside the
+  compound-coloured tyre ring, pit count has its own column, last lap and best
+  lap have separate columns, and sectors show only the current sector time.
