@@ -79,9 +79,10 @@ async fn ingest_session(
             };
             trace!(topic = %topic, "update");
 
-            // A new SessionInfo carrying a Name means a new session — apply it,
-            // then reconnect fresh so state doesn't blend two sessions.
-            let new_session = topic == "SessionInfo" && data.get("Name").is_some();
+            // A changed SessionInfo identity means a new session. Start/status
+            // patches for the same Key/Path also carry Name and must merge in
+            // place, otherwise replay/live reconnects at lights-on.
+            let new_session = topic == "SessionInfo" && is_new_session_info(state, &data).await;
             handle(state, tx, &topic, data).await;
             if new_session {
                 info!("detected new session");
@@ -90,6 +91,37 @@ async fn ingest_session(
         }
     }
     Ok(())
+}
+
+async fn is_new_session_info(state: &Arc<RwLock<State>>, data: &Value) -> bool {
+    if data.get("Name").is_none() {
+        return false;
+    }
+
+    let guard = state.read().await;
+    let Some(current) = guard.session_info.as_ref() else {
+        return false;
+    };
+
+    let incoming_key = data
+        .get("Key")
+        .and_then(Value::as_i64)
+        .and_then(|key| i32::try_from(key).ok());
+    if incoming_key.is_some_and(|key| key != current.key) {
+        return true;
+    }
+
+    let incoming_path = data.get("Path").and_then(Value::as_str).unwrap_or("");
+    if !incoming_path.is_empty() && incoming_path != current.path {
+        return true;
+    }
+
+    incoming_key.is_none()
+        && incoming_path.is_empty()
+        && data
+            .get("Name")
+            .and_then(Value::as_str)
+            .is_some_and(|name| !current.name.is_empty() && name != current.name)
 }
 
 /// Reset state to the new session's initial snapshot and seed each topic.
@@ -260,5 +292,55 @@ mod tests {
         let guard = state.read().await;
         assert!(guard.last_feed_event_ms.is_none());
         assert!(guard.heartbeat.is_some()); // the topic itself still merges
+    }
+
+    #[tokio::test]
+    async fn session_info_start_patch_is_not_a_new_session() {
+        let state = Arc::new(RwLock::new(State::default()));
+        {
+            let mut guard = state.write().await;
+            guard.apply(
+                "SessionInfo",
+                json!({
+                    "Key": 11303,
+                    "Name": "Qualifying",
+                    "Path": "2026/2026-06-14_Barcelona_Grand_Prix/2026-06-13_Qualifying/",
+                    "SessionStatus": "Inactive"
+                }),
+            );
+        }
+
+        let patch = json!({
+            "Key": 11303,
+            "Name": "Qualifying",
+            "Path": "2026/2026-06-14_Barcelona_Grand_Prix/2026-06-13_Qualifying/",
+            "SessionStatus": "Started"
+        });
+
+        assert!(!is_new_session_info(&state, &patch).await);
+    }
+
+    #[tokio::test]
+    async fn session_info_identity_change_is_a_new_session() {
+        let state = Arc::new(RwLock::new(State::default()));
+        {
+            let mut guard = state.write().await;
+            guard.apply(
+                "SessionInfo",
+                json!({
+                    "Key": 11303,
+                    "Name": "Qualifying",
+                    "Path": "2026/2026-06-14_Barcelona_Grand_Prix/2026-06-13_Qualifying/"
+                }),
+            );
+        }
+
+        let patch = json!({
+            "Key": 11304,
+            "Name": "Race",
+            "Path": "2026/2026-06-14_Barcelona_Grand_Prix/2026-06-14_Race/"
+        });
+
+        assert!(is_new_session_info(&state, &patch).await);
     }
 }

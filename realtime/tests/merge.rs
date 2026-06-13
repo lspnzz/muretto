@@ -35,6 +35,24 @@ fn driver_list_initial_then_partial_keeps_siblings() {
 }
 
 #[test]
+fn driver_list_initial_ignores_live_metadata_keys() {
+    let mut s = State::default();
+    initial(
+        &mut s,
+        "DriverList",
+        json!({
+            "44": { "RacingNumber": "44", "Tla": "HAM", "TeamColour": "00D2BE", "Line": 3 },
+            "_kf": true,
+        }),
+    );
+
+    let drivers = s.driver_list.as_ref().unwrap();
+    assert_eq!(drivers.len(), 1);
+    assert_eq!(drivers["44"].tla, "HAM");
+    assert!(!drivers.contains_key("_kf"));
+}
+
+#[test]
 fn timing_data_nested_sector_segment_partial() {
     let mut s = State::default();
     initial(
