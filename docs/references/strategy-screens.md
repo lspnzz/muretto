@@ -153,4 +153,5 @@ web product at f1academy.com/livetiming, the
   monospace timing figures, in the same panel grammar as the other tabs.
 - **Timing cells are split for scan speed**: current tyre age sits inside the
   compound-coloured tyre ring, pit count has its own column, last lap and best
-  lap have separate columns, and sectors show only the current sector time.
+  lap have separate columns, and sectors center the current sector time with
+  thin mini-sector status lines below it.

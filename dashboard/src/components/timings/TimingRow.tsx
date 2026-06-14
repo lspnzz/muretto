@@ -5,7 +5,7 @@ import { displayName } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import type { Driver, Stint, TimingDataDriver } from "@/types";
 import { DriverTag } from "./DriverTag";
-import { BestLapCell, GapCell, PitCell, PitStatusCell, TimeCell, TyreCell } from "./cells";
+import { BestLapCell, GapCell, LastLapCell, PitCell, PitStatusCell, TyreCell } from "./cells";
 import { SectorsCell } from "./SectorsCell";
 
 export const TIMING_GRID =
@@ -44,7 +44,7 @@ export function TimingRow({
       <TyreCell stints={stints} />
       <PitCell stints={stints} />
       <GapCell timing={timing} sessionPart={state.TimingData?.SessionPart} />
-      <TimeCell timing={timing} />
+      <LastLapCell timing={timing} />
       <BestLapCell timing={timing} hasFastest={hasFastest} />
       <SectorsCell sectors={timing.Sectors} />
       <PitStatusCell timing={timing} />

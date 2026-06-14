@@ -86,7 +86,7 @@ export function PitStatusCell({ timing }: { timing: TimingDataDriver }) {
 }
 
 /** Last lap time, with fastest-lap colouring. */
-export function TimeCell({ timing }: { timing: TimingDataDriver }) {
+export function LastLapCell({ timing }: { timing: TimingDataDriver }) {
   const last = timing.LastLapTime;
   const lastCls = last?.OverallFastest
     ? "text-violet-500"

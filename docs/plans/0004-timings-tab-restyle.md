@@ -39,7 +39,7 @@ map bolted on the right at 2xl. Three problems:
   carries the session name, running clock, and track-status dot; meeting
   name and lap counter already live in the app header, weather on Overview.
 - **Tighter grid** (`6.5rem 4.25rem 4.75rem 5.25rem auto`), monospace
-  timing figures, FOM-style thin rules between rows (no zebra), smaller
+  timing figures, FOM-style thin rules between rows (no zebra), and compact
   sector mini-segments. Colour semantics (violet/emerald/amber, segment
   status codes) unchanged.
 

@@ -28,25 +28,26 @@ export function SectorsCell({
     .flatMap((key) => (sectors[key] ? [{ key, sector: sectors[key] }] : []));
 
   return (
-    <div className="flex gap-2.5">
+    <div className="flex items-center gap-2.5">
       {ordered.map(({ key, sector }) => {
         const valueCls = sectorValueClass(sector);
+        const segments = segmentList(sector.Segments);
 
         return (
-          <div key={key} className="flex flex-col gap-1">
-            <div className="flex flex-row gap-0.5">
-              {segmentList(sector.Segments).map((segment, i) => (
+          <div key={key} className="relative h-7 w-[4.75rem] shrink-0 font-mono">
+            <p
+              className={`flex h-full items-center justify-center text-center text-base leading-none font-medium tabular-nums ${valueCls}`}
+            >
+              {sector.Value || sector.PreviousValue || "-- ---"}
+            </p>
+            <div className="absolute inset-x-0 bottom-0 flex justify-center gap-px">
+              {segments.map((segment, i) => (
                 <div
                   key={i}
                   className={segmentClass(segment.Status)}
-                  style={{ width: 9, height: 4, borderRadius: 2 }}
+                  style={{ width: 8, height: 2, borderRadius: 1 }}
                 />
               ))}
-            </div>
-            <div className="flex items-baseline gap-1 font-mono">
-              <p className={`text-base leading-none font-medium tabular-nums ${valueCls}`}>
-                {sector.Value || sector.PreviousValue || "-- ---"}
-              </p>
             </div>
           </div>
         );
@@ -55,14 +56,16 @@ export function SectorsCell({
   );
 }
 
-/** Sector-value colour per the personal/overall-fastest convention. */
+/** Sector-value colour per the timing-page fastest/better/slower convention. */
 export function sectorValueClass(sector: Sector): string {
+  const hasValue = Boolean(sector.Value || sector.PreviousValue);
+
   return sector.OverallFastest
     ? "text-violet-500"
     : sector.PersonalFastest
       ? "text-emerald-500"
-      : sector.Value
-        ? ""
+      : hasValue
+        ? "text-amber-400"
         : "text-zinc-500";
 }
 
