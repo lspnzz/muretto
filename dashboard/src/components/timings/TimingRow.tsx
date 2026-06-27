@@ -10,7 +10,7 @@ import { BestLapCell, GapCell, LastLapCell, PitCell, PitStatusCell, TyreCell } f
 import { SectorsCell } from "./SectorsCell";
 
 export const TIMING_GRID =
-  "5.25rem 3.25rem 2.5rem 5rem 5.25rem 6.75rem minmax(13rem, 1fr) 4.75rem";
+  "5.25rem 3.25rem 2.5rem 5rem 5.25rem minmax(min-content, 1fr) 6.75rem 4.75rem";
 
 export function TimingRow({
   racingNumber,
@@ -47,8 +47,8 @@ export function TimingRow({
       <PitCell stints={stints} />
       <GapCell timing={timing} sessionPart={state.TimingData?.SessionPart} />
       <LastLapCell timing={timing} />
-      <BestLapCell timing={timing} hasFastest={hasFastest} fastestTyre={fastestTyre} />
       <SectorsCell sectors={timing.Sectors} />
+      <BestLapCell timing={timing} hasFastest={hasFastest} fastestTyre={fastestTyre} />
       <PitStatusCell timing={timing} />
     </div>
   );

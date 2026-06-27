@@ -55,9 +55,6 @@ const WIDTH = 200;
 const HEIGHT = 80;
 const PAD = 6;
 const TIMING_SECTOR_COUNT = 3;
-// Half-length of the perpendicular sector-boundary ticks, in viewBox units.
-const SECTOR_TICK_HALF = 3.4;
-const SECTOR_TICK = "#e4e4e7";
 
 // Hexes match TRACK_STATUS in lib/trackStatus.ts (amber-400 / red-500).
 const TRACK_DEFAULT = "#3f3f46";
@@ -188,22 +185,6 @@ export function TrackMap({ highlight, showFastestSectors = false, fit = false }:
             strokeWidth="2"
             vectorEffect="non-scaling-stroke"
           />
-
-          {drawing.sectorTicks.map((tick) => (
-            <line
-              key={`sector-${tick.sector}`}
-              x1={tick.x1}
-              y1={tick.y1}
-              x2={tick.x2}
-              y2={tick.y2}
-              stroke={SECTOR_TICK}
-              strokeWidth="2"
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-            >
-              <title>{`Sector ${tick.sector} / ${tick.sector + 1} boundary`}</title>
-            </line>
-          ))}
 
           {drawing.fastestSectors.map((segment) => (
             <path
@@ -346,12 +327,10 @@ function buildDrawing(
   );
   const bounds = boundsFor(rotatedOutline);
   const projected = rotatedOutline.map((point) => project(point, bounds));
-  const sectors = splitPathEvenly(projected, TIMING_SECTOR_COUNT);
 
   return {
     trackPath: pathFor(projected),
-    sectorTicks: sectorBoundaryTicks(sectors),
-    fastestSectors: fastestSectorPaths(sectors, flags, sectorLeaders),
+    fastestSectors: fastestSectorPaths(projected, flags, sectorLeaders),
     yellowSegments: yellowSegmentPaths(outline, projected, geometry, flags),
     cars: staggerLabels(rotatedCars.map((point) => ({ ...point, ...project(point, bounds) }))),
     corners: rotatedCorners.map((corner) => ({ ...corner, ...project(corner, bounds) })),
@@ -359,7 +338,7 @@ function buildDrawing(
 }
 
 function fastestSectorPaths(
-  sectors: RawPoint[][],
+  projected: RawPoint[],
   flags: TrackMapFlags,
   sectorLeaders: FastestSectorLeader[],
 ) {
@@ -373,38 +352,11 @@ function fastestSectorPaths(
     return [];
   }
 
+  const sectors = splitPathEvenly(projected, TIMING_SECTOR_COUNT);
   return sectorLeaders.flatMap((leader) => {
     const points = sectors[leader.sector];
     if (!points || points.length < 2) return [];
     return [{ ...leader, path: pathFor(points) }];
-  });
-}
-
-/**
- * Short perpendicular ticks where the timing sectors meet. Anchored on the same
- * even 3-split the fastest-sector overlay uses, so the ticks mark exactly where
- * the coloured sector segments begin and end.
- */
-function sectorBoundaryTicks(sectors: RawPoint[][]) {
-  return sectors.slice(1).flatMap((segment, index) => {
-    const point = segment[0];
-    const prev = sectors[index];
-    const after = segment[1] ?? point;
-    const before = prev[prev.length - 2] ?? point;
-    const tx = after.x - before.x;
-    const ty = after.y - before.y;
-    const len = Math.hypot(tx, ty) || 1;
-    const nx = -ty / len;
-    const ny = tx / len;
-    return [
-      {
-        sector: index + 1,
-        x1: point.x - nx * SECTOR_TICK_HALF,
-        y1: point.y - ny * SECTOR_TICK_HALF,
-        x2: point.x + nx * SECTOR_TICK_HALF,
-        y2: point.y + ny * SECTOR_TICK_HALF,
-      },
-    ];
   });
 }
 

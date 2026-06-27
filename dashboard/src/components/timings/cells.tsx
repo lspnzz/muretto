@@ -107,8 +107,9 @@ export function LastLapCell({ timing }: { timing: TimingDataDriver }) {
 }
 
 /**
- * Personal best lap time (violet when it is the session best), prefixed with a
- * compound-coloured dot + tyre age showing which tyre that lap was set on.
+ * Personal best lap time (violet when it is the session best), followed by a
+ * small compound-coloured dot + tyre age showing which tyre that lap was set
+ * on. Left-aligned in a fixed-width column so the lap times line up.
  */
 export function BestLapCell({
   timing,
@@ -123,7 +124,7 @@ export function BestLapCell({
 
   return (
     <div
-      className="flex items-center justify-end gap-1.5 justify-self-end"
+      className="flex items-center justify-self-start gap-1.5"
       title={
         fastestTyre
           ? `Fastest lap on ${fastestTyre.compound} (${fastestTyre.age} lap${
@@ -132,20 +133,20 @@ export function BestLapCell({
           : undefined
       }
     >
+      <span className={`font-mono text-base leading-none font-medium tabular-nums ${timeCls}`}>
+        {timing.BestLapTime?.Value || "-- -- ---"}
+      </span>
       {fastestTyre && (
         <span className="flex items-center gap-0.5" aria-hidden>
           <span
-            className="h-2 w-2 shrink-0 rounded-full"
+            className="h-1.5 w-1.5 shrink-0 rounded-full"
             style={{ backgroundColor: tyreHex(fastestTyre.compound) }}
           />
-          <span className="font-mono text-[10px] leading-none tabular-nums text-zinc-400">
+          <span className="font-mono text-[10px] leading-none tabular-nums text-zinc-500">
             {fastestTyre.age}
           </span>
         </span>
       )}
-      <span className={`font-mono text-base leading-none font-medium tabular-nums ${timeCls}`}>
-        {timing.BestLapTime?.Value || "-- -- ---"}
-      </span>
     </div>
   );
 }
