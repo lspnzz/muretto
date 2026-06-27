@@ -6,7 +6,7 @@ import { useDataStore } from "@/stores/useDataStore";
 import type { Stint } from "@/types";
 
 /** Per-driver stint history — compound bars sized by laps run. */
-export function TyreStints() {
+export function TyreStints({ fill = false }: { fill?: boolean }) {
   const state = useDataStore((s) => s.state);
   const rows = orderedDrivers(state);
   const lines = state.TimingAppData?.Lines;
@@ -20,9 +20,11 @@ export function TyreStints() {
   }
 
   return (
-    <section className="rounded-lg border border-zinc-800 p-4">
+    <section
+      className={`rounded-lg border border-zinc-800 p-4 ${fill ? "xl:flex xl:h-full xl:min-h-0 xl:flex-col" : ""}`}
+    >
       <h2 className="mb-3 text-xs uppercase tracking-wide text-zinc-500">Tyre stints</h2>
-      <ul className="flex flex-col gap-1.5">
+      <ul className={`flex flex-col gap-1.5 ${fill ? "xl:min-h-0 xl:flex-1 xl:overflow-y-auto" : ""}`}>
         {rows.map((row, index) => {
           const stints = orderedStints(lines[row.racingNumber]?.Stints);
           if (stints.length === 0) return null;

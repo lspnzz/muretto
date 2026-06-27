@@ -27,12 +27,12 @@ export function TimingTower() {
   }
 
   return (
-    <section className="rounded-lg border border-zinc-800">
+    <section className="flex min-h-0 flex-col rounded-lg border border-zinc-800 xl:h-full">
       <PanelHeader />
-      <div className="overflow-x-auto">
+      <div className="min-h-0 overflow-auto xl:flex-1">
         <div className="min-w-fit">
           <div
-            className="grid items-center gap-x-2.5 border-b border-zinc-800 px-3 py-2 text-[11px] uppercase tracking-wide text-zinc-500"
+            className="sticky top-0 z-10 grid items-center gap-x-2.5 border-b border-zinc-800 bg-black px-3 py-2 text-[11px] uppercase tracking-wide text-zinc-500"
             style={{ gridTemplateColumns: TIMING_GRID }}
           >
             {HEADERS.map((header, index) => (

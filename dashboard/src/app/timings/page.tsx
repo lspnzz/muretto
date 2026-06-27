@@ -1,5 +1,6 @@
-import { TimingsTab } from "@/components/timings/TimingsTab";
+import { redirect } from "next/navigation";
 
+// Strategy and Timings merged into the Pit wall tab — keep the old URL working.
 export default function TimingsPage() {
-  return <TimingsTab />;
+  redirect("/pitwall");
 }

@@ -11,7 +11,7 @@ detail lives. The [root README](../README.md) covers the human story
 | [design/core-beliefs.md](design/core-beliefs.md) | …changing architecture, adding a dependency, or wondering why something is deliberately missing |
 | [references/f1-feed.md](references/f1-feed.md) | …touching `realtime/src/signalr`, `ingest`, `model`, or the simulator — protocols, frame shapes, the deflate gotcha |
 | [references/multiviewer-circuits.md](references/multiviewer-circuits.md) | …touching the track map or the circuits proxy route |
-| [references/strategy-screens.md](references/strategy-screens.md) | …touching the Strategy or Timings tabs — circle-of-doom geometry, pit-loss table, timing-page colour conventions |
+| [references/strategy-screens.md](references/strategy-screens.md) | …touching the Pit wall tab — circle-of-doom geometry, pit-loss table, timing-page colour conventions |
 | [plans/](plans/) | …starting (or resuming) any multi-session piece of work |
 
 ## Conventions

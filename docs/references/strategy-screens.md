@@ -1,7 +1,8 @@
 # Pit-wall strategy screens — circle of doom and timing-page conventions
 
-Reference for the Strategy and Timings tabs (plan
-[0003](../plans/0003-three-tab-ui-and-liveness.md)). Everything here is a
+Reference for the Pit wall tab (plans
+[0003](../plans/0003-three-tab-ui-and-liveness.md) and
+[0007](../plans/0007-merge-pitwall-tab.md)). Everything here is a
 *fact sheet* distilled from public sources — implement from it, don't copy
 code (f1-dash is AGPL-3.0; muretto is not).
 

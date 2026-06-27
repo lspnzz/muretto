@@ -11,8 +11,7 @@ import { DelayControl } from "./DelayControl";
 
 const TABS = [
   { href: "/", label: "Overview" },
-  { href: "/strategy", label: "Strategy" },
-  { href: "/timings", label: "Timings" },
+  { href: "/pitwall", label: "Pit wall" },
   { href: "/driver", label: "Driver" },
 ] as const;
 
@@ -46,7 +45,7 @@ export function Header() {
       </div>
 
       <nav className="order-last w-full sm:order-none sm:ml-auto sm:w-auto" aria-label="Dashboard views">
-        <div className="grid grid-cols-4 gap-1 rounded-md border border-zinc-800 bg-zinc-950 p-1 sm:flex">
+        <div className="grid grid-cols-3 gap-1 rounded-md border border-zinc-800 bg-zinc-950 p-1 sm:flex">
           {TABS.map((tab) => {
             const active = pathname === tab.href;
             return (
