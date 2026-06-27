@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useLiveness } from "@/hooks/useLiveness";
 import { useDataStore } from "@/stores/useDataStore";
 
-/** Shown on Strategy/Timings instead of stale data when nothing is live. */
+/** Shown on the Pit wall and Driver tabs instead of stale data when nothing is live. */
 export function NoLiveSession() {
   const liveness = useLiveness();
   const connected = useDataStore((s) => s.connected);

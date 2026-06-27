@@ -15,7 +15,7 @@ const FLAG_DOT: Record<string, string> = {
   CHEQUERED: "bg-zinc-200",
 };
 
-export function RaceControlFeed() {
+export function RaceControlFeed({ fill = false }: { fill?: boolean }) {
   const messages = useDataStore((s) => s.state.RaceControlMessages?.Messages);
   const list: Message[] = messages
     ? Object.values(messages).filter((m): m is Message => Boolean(m))
@@ -23,12 +23,14 @@ export function RaceControlFeed() {
   const recent = list.slice(-SHOWN).reverse();
 
   return (
-    <section className="rounded-lg border border-zinc-800 p-4">
+    <section
+      className={`rounded-lg border border-zinc-800 p-4 ${fill ? "xl:flex xl:h-full xl:min-h-0 xl:flex-col" : ""}`}
+    >
       <h2 className="mb-3 text-xs uppercase tracking-wide text-zinc-500">Race control</h2>
       {recent.length === 0 ? (
         <div className="text-sm text-zinc-600">No race-control messages.</div>
       ) : (
-        <ul className="flex max-h-80 flex-col gap-2 overflow-y-auto">
+        <ul className={`flex flex-col gap-2 ${fill ? "xl:min-h-0 xl:flex-1 xl:overflow-y-auto" : ""}`}>
           {recent.map((msg, i) => {
             const dot = msg.Flag && msg.Flag !== "CLEAR" ? FLAG_DOT[msg.Flag] : undefined;
             return (

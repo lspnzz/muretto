@@ -44,6 +44,9 @@ type TrackPoint = RawPoint & {
 type TrackMapProps = {
   highlight?: string;
   showFastestSectors?: boolean;
+  // Fit-to-viewport mode (pit wall): on wide screens the panel fills its cell
+  // and the circuit letterboxes into the available height instead of capping.
+  fit?: boolean;
 };
 
 // Wide broadcast-strip canvas: the panel spans the container above the
@@ -86,7 +89,7 @@ function trackColorFor(flags: TrackMapFlags): string {
  * Circuit outline with live car dots. With `highlight` set (the driver tab),
  * the named car keeps its label and pops; the rest dim and go label-less.
  */
-export function TrackMap({ highlight, showFastestSectors = false }: TrackMapProps) {
+export function TrackMap({ highlight, showFastestSectors = false, fit = false }: TrackMapProps) {
   const state = useDataStore((s) => s.state);
   const { race } = useUpcomingRace();
   const nativeLatest = state.Position?.Position.at(-1) ?? null;
@@ -150,7 +153,9 @@ export function TrackMap({ highlight, showFastestSectors = false }: TrackMapProp
   const statusLabel = FLAG_LABEL[flags.kind];
 
   return (
-    <section className="rounded-lg border border-zinc-800 p-4">
+    <section
+      className={`rounded-lg border border-zinc-800 p-4 ${fit ? "xl:flex xl:h-full xl:min-h-0 xl:flex-col" : ""}`}
+    >
       <div className="mb-3 flex items-baseline justify-between">
         <h2
           className={`text-xs uppercase tracking-wide ${statusLabel?.className ?? "text-zinc-500"}`}
@@ -166,7 +171,7 @@ export function TrackMap({ highlight, showFastestSectors = false }: TrackMapProp
 
       {drawing ? (
         <svg
-          className="mx-auto block h-auto max-h-96 w-full"
+          className={`mx-auto block h-auto max-h-96 w-full ${fit ? "xl:max-h-none xl:min-h-0 xl:flex-1" : ""}`}
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           role="img"
           aria-label="Circuit map with current car positions"

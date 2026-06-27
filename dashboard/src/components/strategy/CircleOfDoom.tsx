@@ -38,15 +38,15 @@ type Marker = {
  * at 12 o'clock, travel clockwise. Geometry and provenance:
  * docs/references/strategy-screens.md.
  */
-export function CircleOfDoom() {
+export function CircleOfDoom({ fit = false }: { fit?: boolean }) {
   const state = useDataStore((s) => s.state);
   const [selected, setSelected] = useState<string | null>(null);
-  const [editedLoss, setEditedLoss] = useState<PitLoss | null>(null);
 
   const sessionType = state.SessionInfo?.Type;
   const circuit = state.SessionInfo?.Meeting?.Circuit?.ShortName;
-  const preset = useMemo(() => pitLossFor(circuit), [circuit]);
-  const loss = editedLoss ?? preset;
+  // Pit-loss times drive the projected rejoin windows; the circuit preset is
+  // used as-is (the editable pit-loss control was removed as unclear).
+  const loss = useMemo(() => pitLossFor(circuit), [circuit]);
   const vscActive = isVscOrSc(state.TrackStatus?.Status);
 
   const { markers, gaps, refLap } = useMemo(() => buildRing(state), [state]);
@@ -61,9 +61,19 @@ export function CircleOfDoom() {
   }
 
   return (
-    <section className="flex flex-col items-center gap-3">
-      <div className="relative w-full max-w-2xl">
-        <svg viewBox="0 0 100 100" className="w-full" role="img" aria-label="Circle of doom">
+    <section
+      className={`flex flex-col items-center gap-3 rounded-lg border border-zinc-800 p-4 ${fit ? "xl:h-full xl:min-h-0" : ""}`}
+    >
+      {/* In fit mode the ring box stays square (height-bound) so the absolutely
+          positioned CentrePanel — sized as a % of this box — stays concentric
+          with the letterboxed ring. */}
+      <div className={`relative w-full max-w-2xl ${fit ? "xl:aspect-square xl:min-h-0 xl:w-auto xl:flex-1" : ""}`}>
+        <svg
+          viewBox="0 0 100 100"
+          className={`w-full ${fit ? "xl:h-full" : ""}`}
+          role="img"
+          aria-label="Circle of doom"
+        >
           {/* The annulus. */}
           <circle cx={CX} cy={CY} r={RING_R} fill="none" stroke="#3f3f46" strokeWidth={RING_W} />
           <circle cx={CX} cy={CY} r={RING_R + RING_W / 2 + 0.4} fill="none" stroke="#27272a" strokeWidth={0.3} />
@@ -96,15 +106,6 @@ export function CircleOfDoom() {
           vscActive={vscActive}
         />
       </div>
-
-      <PitLossControls
-        loss={loss}
-        edited={editedLoss !== null}
-        presetName={circuit ?? "default"}
-        vscActive={vscActive}
-        onChange={setEditedLoss}
-        onReset={() => setEditedLoss(null)}
-      />
     </section>
   );
 }
@@ -289,64 +290,6 @@ function SelectedInfo({
 function rangeLabel(range: { best: number; worst: number } | null): string {
   if (!range) return "—";
   return range.best === range.worst ? `P${range.best}` : `P${range.best}–P${range.worst}`;
-}
-
-function PitLossControls({
-  loss,
-  edited,
-  presetName,
-  vscActive,
-  onChange,
-  onReset,
-}: {
-  loss: PitLoss;
-  edited: boolean;
-  presetName: string;
-  vscActive: boolean;
-  onChange: (loss: PitLoss) => void;
-  onReset: () => void;
-}) {
-  const input = (key: keyof PitLoss, label: string, active: boolean) => (
-    <label className="flex items-center gap-2 text-xs text-zinc-400">
-      <span className={active ? "font-semibold text-zinc-200" : ""}>{label}</span>
-      <input
-        type="number"
-        min={3}
-        max={60}
-        step={0.5}
-        value={loss[key]}
-        onChange={(event) => {
-          const value = Number(event.target.value);
-          if (Number.isFinite(value)) onChange({ ...loss, [key]: clamp(value, 3, 60) });
-        }}
-        className="w-20 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm tabular-nums text-zinc-100"
-      />
-      <span className="text-zinc-600">s</span>
-    </label>
-  );
-
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-lg border border-zinc-800 px-4 py-2.5">
-      <span className="text-xs uppercase tracking-wide text-zinc-600">Pit loss</span>
-      {input("green", "Green", !vscActive)}
-      {input("vsc", "VSC/SC", vscActive)}
-      <button
-        type="button"
-        onClick={onReset}
-        disabled={!edited}
-        className="rounded-md border border-zinc-700 px-2 py-1 text-xs text-zinc-400 transition-colors enabled:hover:bg-zinc-900 disabled:opacity-40"
-      >
-        Reset ({presetName})
-      </button>
-      <span className="text-[11px] text-zinc-600">
-        scenario auto-picks from track status{vscActive ? ": VSC/SC" : ": green"}
-      </span>
-    </div>
-  );
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
 
 function PitWindows({
