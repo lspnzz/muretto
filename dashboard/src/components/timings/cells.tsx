@@ -107,9 +107,10 @@ export function LastLapCell({ timing }: { timing: TimingDataDriver }) {
 }
 
 /**
- * Personal best lap time (violet when it is the session best), followed by a
- * small compound-coloured dot + tyre age showing which tyre that lap was set
- * on. Left-aligned in a fixed-width column so the lap times line up.
+ * Personal best lap time (violet when it is the session best), followed by the
+ * compound letter stacked over the tyre age for the lap it was set on. The
+ * stacked badge is sized to the lap time's line height, so the cell stays one
+ * line tall. Left-aligned in a fixed-width column so the lap times line up.
  */
 export function BestLapCell({
   timing,
@@ -137,14 +138,11 @@ export function BestLapCell({
         {timing.BestLapTime?.Value || "-- -- ---"}
       </span>
       {fastestTyre && (
-        <span className="flex items-center gap-0.5" aria-hidden>
-          <span
-            className="h-1.5 w-1.5 shrink-0 rounded-full"
-            style={{ backgroundColor: tyreHex(fastestTyre.compound) }}
-          />
-          <span className="font-mono text-[10px] leading-none tabular-nums text-zinc-500">
-            {fastestTyre.age}
+        <span className="flex h-4 flex-col items-center justify-center font-mono leading-none" aria-hidden>
+          <span className="text-[8px] font-medium" style={{ color: tyreHex(fastestTyre.compound) }}>
+            {fastestTyre.compound[0]}
           </span>
+          <span className="text-[8px] tabular-nums text-zinc-500">{fastestTyre.age}</span>
         </span>
       )}
     </div>
