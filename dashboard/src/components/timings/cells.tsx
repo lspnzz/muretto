@@ -5,6 +5,7 @@
 // No DRS column: post-2026 cars have none and the feed carries no
 // energy-deployment channel.
 
+import type { FastestLapTyre } from "@/lib/fastestLap";
 import { tyreHex } from "@/lib/tyre";
 import { timingGapDisplay } from "@/lib/timingGaps";
 import type { Stint, TimingDataDriver } from "@/types";
@@ -105,21 +106,46 @@ export function LastLapCell({ timing }: { timing: TimingDataDriver }) {
   );
 }
 
-/** Personal best lap time, violet when it is the session best. */
+/**
+ * Personal best lap time (violet when it is the session best), prefixed with a
+ * compound-coloured dot + tyre age showing which tyre that lap was set on.
+ */
 export function BestLapCell({
   timing,
   hasFastest,
+  fastestTyre,
 }: {
   timing: TimingDataDriver;
   hasFastest: boolean;
+  fastestTyre: FastestLapTyre | null;
 }) {
+  const timeCls = hasFastest ? "text-violet-500" : timing.BestLapTime?.Value ? "" : "text-zinc-500";
+
   return (
     <div
-      className={`justify-self-end text-right font-mono text-base leading-none font-medium tabular-nums ${
-        hasFastest ? "text-violet-500" : timing.BestLapTime?.Value ? "" : "text-zinc-500"
-      }`}
+      className="flex items-center justify-end gap-1.5 justify-self-end"
+      title={
+        fastestTyre
+          ? `Fastest lap on ${fastestTyre.compound} (${fastestTyre.age} lap${
+              fastestTyre.age === 1 ? "" : "s"
+            })`
+          : undefined
+      }
     >
-      {timing.BestLapTime?.Value || "-- -- ---"}
+      {fastestTyre && (
+        <span className="flex items-center gap-0.5" aria-hidden>
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ backgroundColor: tyreHex(fastestTyre.compound) }}
+          />
+          <span className="font-mono text-[10px] leading-none tabular-nums text-zinc-400">
+            {fastestTyre.age}
+          </span>
+        </span>
+      )}
+      <span className={`font-mono text-base leading-none font-medium tabular-nums ${timeCls}`}>
+        {timing.BestLapTime?.Value || "-- -- ---"}
+      </span>
     </div>
   );
 }

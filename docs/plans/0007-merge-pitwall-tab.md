@@ -58,4 +58,12 @@ the glance. The pieces also overlap (both lean on `Position`, `TimingData`,
 
 ## As-built deltas
 
-- (none yet)
+- **Track map**: thicker outline (1.5 → 2) and perpendicular ticks at the two
+  timing-sector boundaries — anchored on the same even 3-split the
+  fastest-sector overlay uses, so ticks mark where the coloured segments begin.
+- **Fastest-lap tyre**: the timing tower's best-lap cell is prefixed with a
+  compound dot + tyre age for the lap the best time was set on. Needed a new
+  `Stint.start_laps` field (Rust model + regenerated types) and
+  `lib/fastestLap.ts`, which maps the best-lap lap number (ragged
+  `TimingStats.PersonalBestLapTime.Lap`) onto the stint via laps actually run
+  (`TotalLaps − StartLaps`). The offline fixture was enriched to carry both.

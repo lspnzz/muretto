@@ -2,6 +2,11 @@
 
 export type Stint = { TotalLaps: number | null, 
 /**
+ * Tyre age (laps already on the set) when the stint began — 0 for a fresh
+ * set, >0 for a used one. Lets clients map a lap number back to a stint.
+ */
+StartLaps: number | null, 
+/**
  * SOFT | MEDIUM | HARD | INTERMEDIATE | WET (loose).
  */
 Compound: string | null, 

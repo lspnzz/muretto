@@ -79,6 +79,17 @@ export function personalBestLapPosition(
   return typeof best["Position"] === "number" ? best["Position"] : null;
 }
 
+/** Lap number on which the driver set their personal-best lap, if known. */
+export function personalBestLapNumber(
+  timingStats: JsonValue | null | undefined,
+  racingNumber: string,
+): number | null {
+  const best = statsLine(timingStats, racingNumber)?.["PersonalBestLapTime"];
+  if (!isDict(best)) return null;
+  const lap = best["Lap"];
+  return typeof lap === "number" && lap > 0 ? lap : null;
+}
+
 /** Rank of the driver's best time in a sector (0-based index), if known. */
 export function bestSectorPosition(
   timingStats: JsonValue | null | undefined,
