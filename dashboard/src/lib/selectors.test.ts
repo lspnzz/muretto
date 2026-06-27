@@ -77,9 +77,9 @@ describe("stintsForDriver", () => {
             Line: 1,
             GridPos: "1",
             Stints: {
-              "2": { Compound: "HARD", TotalLaps: 7, New: "FALSE" },
-              "0": { Compound: "MEDIUM", TotalLaps: 14, New: "TRUE" },
-              "1": { Compound: "SOFT", TotalLaps: 9, New: "TRUE" },
+              "2": { Compound: "HARD", TotalLaps: 7, StartLaps: 0, New: "FALSE" },
+              "0": { Compound: "MEDIUM", TotalLaps: 14, StartLaps: 0, New: "TRUE" },
+              "1": { Compound: "SOFT", TotalLaps: 9, StartLaps: 0, New: "TRUE" },
             },
           },
         },

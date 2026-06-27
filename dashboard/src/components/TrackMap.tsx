@@ -182,7 +182,7 @@ export function TrackMap({ highlight, showFastestSectors = false, fit = false }:
             stroke={trackColorFor(flags)}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth="1.5"
+            strokeWidth="2"
             vectorEffect="non-scaling-stroke"
           />
 

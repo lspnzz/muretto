@@ -38,6 +38,11 @@ overlaid directly.
   boundaries and the affected stretch painted yellow
   (`dashboard/src/lib/flags.ts`). Missing `marshalSectors` degrades cleanly:
   whole-track states still render, sector yellows just don't localize.
+- The three **timing sectors** are not in the geometry (only `marshalSectors`,
+  which are flag posts). The fastest-sector colour overlay therefore splits the
+  outline into equal-length thirds (`splitPathEvenly`) as an approximation;
+  exact FIA sector lines would need per-lap position×sector-time correlation,
+  which neither the geometry API nor the timing feed exposes.
 
 ## Courtesy rules
 

@@ -129,6 +129,9 @@ pub struct TimingAppDataDriver {
 #[serde(default, rename_all = "PascalCase")]
 pub struct Stint {
     pub total_laps: Option<i32>,
+    /// Tyre age (laps already on the set) when the stint began — 0 for a fresh
+    /// set, >0 for a used one. Lets clients map a lap number back to a stint.
+    pub start_laps: Option<i32>,
     /// SOFT | MEDIUM | HARD | INTERMEDIATE | WET (loose).
     pub compound: Option<String>,
     /// "TRUE" | "FALSE" in the feed.

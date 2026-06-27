@@ -92,6 +92,10 @@ and plan [0004](../plans/0004-timings-tab-restyle.md):
   stint; pit count = stints − 1; `New: "FALSE"` ⇒ used set (asterisk).
   Compound colours: SOFT `#F12F32`, MEDIUM `#FBCC1C`, HARD white,
   INTERMEDIATE `#128330`, WET `#1F6DA1`.
+- **Fastest-lap tyre**: the best-lap column (after the sector times) shows the
+  lap time then a small compound dot + tyre age for the lap it was set on —
+  `PersonalBestLapTime.Lap` (ragged `TimingStats`) mapped onto the stint by laps
+  actually run (`TotalLaps − StartLaps`), in `lib/fastestLap.ts`.
 - **Track status pill** (`TrackStatus.Status`): 1 clear/emerald, 2/3/4/6/7
   amber (4 = safety car, 6/7 = VSC), 5 red.
 - **Track-map flag layer**: whole-track states come from `TrackStatus`
