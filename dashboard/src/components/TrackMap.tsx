@@ -46,6 +46,9 @@ type TrackMapProps = {
   // Fit-to-viewport mode (pit wall): on wide screens the panel fills its cell
   // and the circuit letterboxes into the available height instead of capping.
   fit?: boolean;
+  // Extra classes on the root section — the pit wall uses this to set mobile
+  // stacking order (inert on desktop, where grid placement wins).
+  className?: string;
 };
 
 // Wide broadcast-strip canvas: the panel spans the container above the
@@ -85,7 +88,7 @@ function trackColorFor(flags: TrackMapFlags): string {
 }
 
 /** Circuit outline with live car dots, drawn in leaderboard order. */
-export function TrackMap({ showFastestSectors = false, fit = false }: TrackMapProps) {
+export function TrackMap({ showFastestSectors = false, fit = false, className = "" }: TrackMapProps) {
   const state = useDataStore((s) => s.state);
   const { race } = useUpcomingRace();
   const nativeLatest = state.Position?.Position.at(-1) ?? null;
@@ -146,7 +149,7 @@ export function TrackMap({ showFastestSectors = false, fit = false }: TrackMapPr
 
   return (
     <section
-      className={`rounded-lg border border-zinc-800 p-4 ${fit ? "xl:flex xl:h-full xl:min-h-0 xl:flex-col" : ""}`}
+      className={`rounded-lg border border-zinc-800 p-4 ${fit ? "xl:flex xl:h-full xl:min-h-0 xl:flex-col" : ""} ${className}`}
     >
       <div className="mb-3 flex items-baseline justify-between">
         <h2

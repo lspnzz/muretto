@@ -29,23 +29,28 @@ export function PitWallTab() {
         {/* Desktop: a 2x2 wall. The top row (map + ring | tyre stints) shares
             one grid-row height, so the map/ring block is exactly as tall as the
             tyre-stints block; the bottom row (timing | race control + team
-            radio) shares the rest. Narrow screens stack into one column. */}
+            radio) shares the rest. Narrow screens stack into one column —
+            ordered ring → timing → map → stints → race control → radios via
+            `order-*`; the map/ring wrapper goes `display:contents` so the
+            timing tower can slot between the two. All `order-*` reset at `lg`,
+            where the wrapper re-forms and grid placement takes over. */}
         <div className="flex min-h-0 flex-1 flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr)_26rem] xl:grid-rows-[minmax(0,1.5fr)_minmax(0,2fr)]">
-          {/* Top-left: track map + circle of doom. */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start xl:col-start-1 xl:row-start-1 xl:min-h-0 xl:items-stretch">
-            <TrackMap showFastestSectors fit />
-            <CircleOfDoom fit />
+          {/* Top-left: track map + circle of doom. Dissolves on mobile so the
+              ring and map can be reordered around the timing tower. */}
+          <div className="contents gap-4 lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start xl:col-start-1 xl:row-start-1 xl:min-h-0 xl:items-stretch">
+            <TrackMap showFastestSectors fit className="order-3 lg:order-none" />
+            <CircleOfDoom fit className="order-1 lg:order-none" />
           </div>
           {/* Top-right: tyre stints — same height as the map + ring row. */}
-          <div className="xl:col-start-2 xl:row-start-1 xl:flex xl:min-h-0 xl:flex-col">
+          <div className="order-4 lg:order-none xl:col-start-2 xl:row-start-1 xl:flex xl:min-h-0 xl:flex-col">
             <TyreStints fill />
           </div>
           {/* Bottom-left: timing tower, scrolls its rows. */}
-          <div className="min-h-0 xl:col-start-1 xl:row-start-2">
+          <div className="order-2 min-h-0 lg:order-none xl:col-start-1 xl:row-start-2">
             <TimingTower />
           </div>
           {/* Bottom-right: race control + team radio split the remaining height. */}
-          <aside className="flex flex-col gap-4 xl:col-start-2 xl:row-start-2 xl:min-h-0">
+          <aside className="order-5 flex flex-col gap-4 lg:order-none xl:col-start-2 xl:row-start-2 xl:min-h-0">
             <div className="xl:flex xl:min-h-0 xl:flex-1 xl:flex-col">
               <RaceControlFeed fill />
             </div>
