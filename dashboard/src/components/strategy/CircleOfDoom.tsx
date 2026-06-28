@@ -38,7 +38,15 @@ type Marker = {
  * at 12 o'clock, travel clockwise. Geometry and provenance:
  * docs/references/strategy-screens.md.
  */
-export function CircleOfDoom({ fit = false }: { fit?: boolean }) {
+export function CircleOfDoom({
+  fit = false,
+  className = "",
+}: {
+  fit?: boolean;
+  // Extra classes on the root section — the pit wall uses this to set mobile
+  // stacking order (inert on desktop, where grid placement wins).
+  className?: string;
+}) {
   const state = useDataStore((s) => s.state);
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -54,7 +62,9 @@ export function CircleOfDoom({ fit = false }: { fit?: boolean }) {
 
   if (sessionType && sessionType !== "Race") {
     return (
-      <section className="rounded-lg border border-zinc-800 p-5 text-sm text-zinc-500">
+      <section
+        className={`rounded-lg border border-zinc-800 p-5 text-sm text-zinc-500 ${className}`}
+      >
         The strategy ring works on race gaps — it activates when a race session is live.
       </section>
     );
@@ -62,7 +72,7 @@ export function CircleOfDoom({ fit = false }: { fit?: boolean }) {
 
   return (
     <section
-      className={`flex flex-col items-center gap-3 rounded-lg border border-zinc-800 p-4 ${fit ? "xl:h-full xl:min-h-0" : ""}`}
+      className={`flex flex-col items-center gap-3 rounded-lg border border-zinc-800 p-4 ${fit ? "xl:h-full xl:min-h-0" : ""} ${className}`}
     >
       {/* In fit mode the ring box stays square (height-bound) so the absolutely
           positioned CentrePanel — sized as a % of this box — stays concentric
