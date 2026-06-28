@@ -2,9 +2,9 @@
 // one place so components stay tidy.
 
 import { bestSectorPosition, bestSectorValue } from "@/lib/ragged";
-import type { CarChannels, Driver, State, Stint, TimingDataDriver } from "@/types";
+import type { Driver, State, Stint, TimingDataDriver } from "@/types";
 
-export type DriverRow = {
+type DriverRow = {
   racingNumber: string;
   driver?: Driver;
   timing?: TimingDataDriver;
@@ -54,18 +54,6 @@ export function orderedDrivers(state: State): DriverRow[] {
   return rows;
 }
 
-/** Latest telemetry channels for a car, if any. */
-export function telemetry(state: State, racingNumber: string): CarChannels | undefined {
-  const entries = state.CarData?.Entries;
-  if (!entries || entries.length === 0) return undefined;
-  return entries[entries.length - 1]?.Cars?.[racingNumber]?.Channels;
-}
-
-/** Current tyre compound for a car (last stint), if known. */
-export function currentTyre(state: State, racingNumber: string): string | undefined {
-  return currentStint(state, racingNumber)?.Compound || undefined;
-}
-
 /** Current stint for a car (last stint), if known. */
 export function currentStint(state: State, racingNumber: string): Stint | undefined {
   return stintsForDriver(state, racingNumber).at(-1);
@@ -79,11 +67,6 @@ export function stintsForDriver(state: State, racingNumber: string): Stint[] {
   return Object.entries(stints)
     .sort(([left], [right]) => Number(left) - Number(right))
     .flatMap(([, stint]) => (stint ? [stint] : []));
-}
-
-/** Current stint lap count for a car, if known. */
-export function stintLaps(state: State, racingNumber: string): number | undefined {
-  return currentStint(state, racingNumber)?.TotalLaps ?? undefined;
 }
 
 /** Best-effort stop count derived from stint count; the feed does not expose it directly. */

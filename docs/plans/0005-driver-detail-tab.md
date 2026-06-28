@@ -1,5 +1,5 @@
-> **Status:** approved 2026-06-12, implemented 2026-06-12. As-built deltas at
-> the end.
+> **Status:** approved 2026-06-12, implemented 2026-06-12, **removed
+> 2026-06-28**. As-built deltas at the end.
 
 # 0005 — Driver tab: car telemetry, sector breakdown, focused track map
 
@@ -100,3 +100,10 @@ per-driver view can honestly show:
   sector panel, and map highlight together; the trace shows LEC's
   lift-and-brake event; OT badge and FL/ST traps populate; mobile stacks
   selector → telemetry → timing → map.
+- **Removed 2026-06-28.** The `/driver` route and `components/driver/`
+  (`DriverTab`, `DriverSelector`, `TelemetryPanel`, `SectorBreakdown`) are
+  gone; the header nav is back to two tabs (Overview, Pit wall). Feature-only
+  modules `lib/telemetry.ts` and `lib/raceControl.ts` (overtake/straight-mode
+  badges) and their tests were deleted with it. `TrackMap` lost its
+  `highlight` prop (it had no other caller); the `SectorsCell` semantics
+  helpers and `orderedStints`, once exported for this tab, are internal again.

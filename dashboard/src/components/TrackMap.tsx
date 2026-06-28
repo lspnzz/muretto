@@ -42,7 +42,6 @@ type TrackPoint = RawPoint & {
 };
 
 type TrackMapProps = {
-  highlight?: string;
   showFastestSectors?: boolean;
   // Fit-to-viewport mode (pit wall): on wide screens the panel fills its cell
   // and the circuit letterboxes into the available height instead of capping.
@@ -85,11 +84,8 @@ function trackColorFor(flags: TrackMapFlags): string {
   }
 }
 
-/**
- * Circuit outline with live car dots. With `highlight` set (the driver tab),
- * the named car keeps its label and pops; the rest dim and go label-less.
- */
-export function TrackMap({ highlight, showFastestSectors = false, fit = false }: TrackMapProps) {
+/** Circuit outline with live car dots, drawn in leaderboard order. */
+export function TrackMap({ showFastestSectors = false, fit = false }: TrackMapProps) {
   const state = useDataStore((s) => s.state);
   const { race } = useUpcomingRace();
   const nativeLatest = state.Position?.Position.at(-1) ?? null;
@@ -129,10 +125,6 @@ export function TrackMap({ highlight, showFastestSectors = false, fit = false }:
   const cars: TrackPoint[] = Object.entries(latestEntries)
     .flatMap(([racingNumber, car]) => carPoint(racingNumber, car, rowByNumber))
     .sort((a, b) => {
-      // Leaderboard order; the highlighted car draws last so it sits on top.
-      if (highlight && (a.racingNumber === highlight) !== (b.racingNumber === highlight)) {
-        return a.racingNumber === highlight ? 1 : -1;
-      }
       const left = rowByNumber.get(a.racingNumber)?.position ?? 999;
       const right = rowByNumber.get(b.racingNumber)?.position ?? 999;
       return left - right;
@@ -233,33 +225,23 @@ export function TrackMap({ highlight, showFastestSectors = false, fit = false }:
             </text>
           ))}
 
-          {drawing.cars.map((point) => {
-            const dimmed = Boolean(highlight) && point.racingNumber !== highlight;
-            const focused = highlight === point.racingNumber;
-            return (
-              <g
-                key={point.racingNumber}
-                transform={`translate(${point.x} ${point.y})`}
-                className={dimmed ? "opacity-40" : undefined}
+          {drawing.cars.map((point) => (
+            <g key={point.racingNumber} transform={`translate(${point.x} ${point.y})`}>
+              <circle
+                r={2.4}
+                fill={point.color}
+                className="stroke-black"
+                strokeWidth="0.8"
+              />
+              <text
+                x={3.6}
+                y={point.labelDy}
+                className="fill-zinc-100 font-mono text-[4px] font-semibold"
               >
-                <circle
-                  r={focused ? 3 : dimmed ? 1.9 : 2.4}
-                  fill={point.color}
-                  className={focused ? "stroke-zinc-100" : "stroke-black"}
-                  strokeWidth="0.8"
-                />
-                {!dimmed && (
-                  <text
-                    x={focused ? 4.2 : 3.6}
-                    y={point.labelDy}
-                    className="fill-zinc-100 font-mono text-[4px] font-semibold"
-                  >
-                    {point.label}
-                  </text>
-                )}
-              </g>
-            );
-          })}
+                {point.label}
+              </text>
+            </g>
+          ))}
         </svg>
       ) : (
         <div className="text-sm text-zinc-600">
