@@ -23,7 +23,7 @@ export type State = { Heartbeat: Heartbeat | null, ExtrapolatedClock: Extrapolat
  * held-over snapshot from a live stream. Rides full snapshots only;
  * per-topic deltas never carry it (egress stays delta-sized).
  */
-LastFeedEventMs: number | null,
+LastFeedEventMs: number | null, 
 /**
  * Per-lap lap times, accumulated by ingest: racing number -> lap number
  * (stringified) -> that lap's `LastLapTime`. The feed only ever carries the
