@@ -7,6 +7,7 @@
 //! (the pragmatism guard — `docs/design/core-beliefs.md`) so new feed fields
 //! never break ingest.
 
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use ts_rs::TS;
@@ -19,7 +20,7 @@ use super::race_control::RaceControlMessages;
 use super::session::{
     ExtrapolatedClock, Heartbeat, LapCount, SessionInfo, SessionStatus, TrackStatus, WeatherData,
 };
-use super::timing::{TimingAppData, TimingData};
+use super::timing::{LapVal, TimingAppData, TimingData};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, TS, Merge)]
 #[serde(default, rename_all = "PascalCase")]
@@ -72,6 +73,15 @@ pub struct State {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(type = "number | null")]
     pub last_feed_event_ms: Option<i64>,
+
+    // --- Synthetic lap history, not a feed topic. ---
+    /// Per-lap lap times, accumulated by ingest: racing number -> lap number
+    /// (stringified) -> that lap's `LastLapTime`. The feed only ever carries the
+    /// *latest* lap, so this is the only record of the race's lap-by-lap times.
+    /// It is built live from the stream and resets with the session (no
+    /// persistence — core belief 6); a mid-session reconnect rebuilds from the
+    /// snapshot's latest lap onward.
+    pub lap_history: IndexMap<String, IndexMap<String, LapVal>>,
 }
 
 impl State {

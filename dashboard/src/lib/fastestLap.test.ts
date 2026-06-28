@@ -24,6 +24,7 @@ function state(overrides: Partial<State> = {}): State {
     TeamRadio: null,
     ChampionshipPrediction: null,
     LastFeedEventMs: null,
+    LapHistory: {},
     ...overrides,
   };
 }

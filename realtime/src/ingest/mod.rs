@@ -14,10 +14,13 @@ use std::time::Duration;
 
 use anyhow::Result;
 use futures::StreamExt;
+use indexmap::IndexMap;
 use serde_json::{Map, Value, json};
 use tokio::sync::{RwLock, broadcast};
 use tokio_util::sync::CancellationToken;
 use tracing::{info, trace, warn};
+
+use muretto_merge::Merge;
 
 use crate::config;
 use crate::model::State;
@@ -144,6 +147,12 @@ async fn apply_initial(
             }
         }
     }
+    {
+        // Seed lap history from the snapshot's latest lap so a freshly
+        // (re)connected client isn't blank; live updates accumulate from here.
+        let mut guard = state.write().await;
+        let _ = fold_lap_history(&mut guard, &IndexMap::new());
+    }
     backfill_driver_list(state, tx, false).await;
     // State was replaced, not patched — connected clients must replace too,
     // so this goes out as `initial` rather than a foldable `update`.
@@ -158,15 +167,20 @@ async fn handle(
     topic: &str,
     data: Value,
 ) {
-    {
+    let lap_delta = {
         let mut guard = state.write().await;
+        // Snapshot the latest lap per driver *before* applying, so a changed
+        // LastLapTime in this delta reads as a completed lap.
+        let prev = (topic == "TimingData").then(|| last_lap_values(&guard));
         guard.apply(topic, data.clone());
         // Heartbeat proves the socket is alive, not that a session is
         // producing data, so it doesn't refresh the stamp.
         if topic != "Heartbeat" {
             guard.last_feed_event_ms = Some(now_ms());
         }
-    }
+        prev.and_then(|prev| fold_lap_history(&mut guard, &prev))
+    };
+
     let mut obj = Map::with_capacity(1);
     obj.insert(topic.to_string(), data);
     if let Ok(payload) = serde_json::to_string(&Value::Object(obj)) {
@@ -174,9 +188,67 @@ async fn handle(
         let _ = tx.send(Broadcast::Update(payload));
     }
 
+    // Lap history isn't a feed topic; broadcast the freshly-folded laps as their
+    // own delta so live clients accumulate them the same way they fold any topic.
+    if let Some(lap_delta) = lap_delta {
+        let mut obj = Map::with_capacity(1);
+        obj.insert("LapHistory".to_string(), lap_delta);
+        if let Ok(payload) = serde_json::to_string(&Value::Object(obj)) {
+            let _ = tx.send(Broadcast::Update(payload));
+        }
+    }
+
     if matches!(topic, "DriverList" | "SessionInfo") {
         backfill_driver_list(state, tx, true).await;
     }
+}
+
+/// Each driver's current `LastLapTime` value, to diff against after a TimingData
+/// delta is applied.
+fn last_lap_values(state: &State) -> IndexMap<String, String> {
+    state
+        .timing_data
+        .as_ref()
+        .map(|td| {
+            td.lines
+                .iter()
+                .map(|(num, line)| (num.clone(), line.last_lap_time.value.clone()))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Fold any driver whose `LastLapTime` changed (vs `prev`) into `lap_history`,
+/// keyed by their current lap number, and return the same additions as a delta
+/// (`{ "<num>": { "<lap>": LapVal } }`) to broadcast — or `None` if nothing new.
+fn fold_lap_history(state: &mut State, prev: &IndexMap<String, String>) -> Option<Value> {
+    let lines = &state.timing_data.as_ref()?.lines;
+    let mut additions = Map::new();
+    for (num, line) in lines {
+        if line.last_lap_time.value.is_empty() {
+            continue;
+        }
+        let unchanged = prev
+            .get(num)
+            .is_some_and(|before| before == &line.last_lap_time.value);
+        if unchanged {
+            continue;
+        }
+        let Some(lap) = line.number_of_laps else {
+            continue;
+        };
+        if let Ok(lap_val) = serde_json::to_value(&line.last_lap_time) {
+            let mut entry = Map::with_capacity(1);
+            entry.insert(lap.to_string(), lap_val);
+            additions.insert(num.clone(), Value::Object(entry));
+        }
+    }
+    if additions.is_empty() {
+        return None;
+    }
+    let delta = Value::Object(additions);
+    state.lap_history.merge(delta.clone());
+    Some(delta)
 }
 
 async fn backfill_driver_list(
@@ -274,6 +346,87 @@ mod tests {
             Ok(Broadcast::Update(payload)) => assert!(payload.contains("TrackStatus")),
             other => panic!("expected an update broadcast, got {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn timing_data_lap_completion_accumulates_and_broadcasts_history() {
+        let state = Arc::new(RwLock::new(State::default()));
+        let (tx, mut rx) = broadcast::channel(8);
+
+        handle(
+            &state,
+            &tx,
+            "TimingData",
+            json!({ "Lines": { "44": { "NumberOfLaps": 1, "LastLapTime": { "Value": "1:30.000" } } } }),
+        )
+        .await;
+
+        // The topic delta, then the synthetic LapHistory delta.
+        match rx.recv().await {
+            Ok(Broadcast::Update(p)) => assert!(p.contains("TimingData")),
+            other => panic!("expected TimingData update, got {other:?}"),
+        }
+        match rx.recv().await {
+            Ok(Broadcast::Update(p)) => {
+                assert!(p.contains("LapHistory"));
+                assert!(p.contains("1:30.000"));
+            }
+            other => panic!("expected LapHistory update, got {other:?}"),
+        }
+
+        let guard = state.read().await;
+        assert_eq!(guard.lap_history["44"]["1"].value, "1:30.000");
+    }
+
+    #[tokio::test]
+    async fn unchanged_last_lap_does_not_record_a_lap() {
+        let state = Arc::new(RwLock::new(State::default()));
+        let (tx, _rx) = broadcast::channel(16);
+
+        handle(
+            &state,
+            &tx,
+            "TimingData",
+            json!({ "Lines": { "44": { "NumberOfLaps": 1, "LastLapTime": { "Value": "1:30.000" } } } }),
+        )
+        .await;
+        // A later delta that doesn't change LastLapTime (e.g. a gap update).
+        handle(
+            &state,
+            &tx,
+            "TimingData",
+            json!({ "Lines": { "44": { "GapToLeader": "+1.0" } } }),
+        )
+        .await;
+
+        let guard = state.read().await;
+        assert_eq!(guard.lap_history["44"].len(), 1);
+    }
+
+    #[tokio::test]
+    async fn successive_laps_append_without_dropping_earlier_ones() {
+        let state = Arc::new(RwLock::new(State::default()));
+        let (tx, _rx) = broadcast::channel(16);
+
+        handle(
+            &state,
+            &tx,
+            "TimingData",
+            json!({ "Lines": { "44": { "NumberOfLaps": 1, "LastLapTime": { "Value": "1:30.000" } } } }),
+        )
+        .await;
+        handle(
+            &state,
+            &tx,
+            "TimingData",
+            json!({ "Lines": { "44": { "NumberOfLaps": 2, "LastLapTime": { "Value": "1:29.500" } } } }),
+        )
+        .await;
+
+        let guard = state.read().await;
+        let laps = &guard.lap_history["44"];
+        assert_eq!(laps["1"].value, "1:30.000");
+        assert_eq!(laps["2"].value, "1:29.500");
     }
 
     #[tokio::test]

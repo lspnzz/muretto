@@ -4,6 +4,7 @@ import type { Driver, State } from "@/types";
 import {
   currentStint,
   displayName,
+  driverLaps,
   fastestSectorLeaders,
   pitCount,
   stintsForDriver,
@@ -30,6 +31,7 @@ function state(overrides: Partial<State> = {}): State {
     TeamRadio: null,
     ChampionshipPrediction: null,
     LastFeedEventMs: null,
+    LapHistory: {},
     ...overrides,
   };
 }
@@ -93,6 +95,35 @@ describe("stintsForDriver", () => {
     ]);
     expect(currentStint(currentState, "44")?.Compound).toBe("HARD");
     expect(pitCount(currentState, "44")).toBe(2);
+  });
+});
+
+describe("driverLaps", () => {
+  const lap = (Value: string) => ({
+    Value,
+    Status: 0,
+    OverallFastest: false,
+    PersonalFastest: false,
+    Position: null,
+  });
+
+  it("returns a driver's laps sorted by lap number", () => {
+    const currentState = state({
+      LapHistory: {
+        "44": { "2": lap("1:29.500"), "1": lap("1:30.000"), "10": lap("1:28.900") },
+      },
+    });
+
+    expect(driverLaps(currentState, "44")).toEqual([
+      { lap: 1, val: lap("1:30.000") },
+      { lap: 2, val: lap("1:29.500") },
+      { lap: 10, val: lap("1:28.900") },
+    ]);
+  });
+
+  it("is empty for a driver with no recorded laps", () => {
+    expect(driverLaps(state(), "44")).toEqual([]);
+    expect(driverLaps(state({ LapHistory: { "16": { "1": lap("1:31.0") } } }), "44")).toEqual([]);
   });
 });
 

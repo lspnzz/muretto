@@ -5,6 +5,7 @@ import type { ExtrapolatedClock } from "./ExtrapolatedClock";
 import type { Heartbeat } from "./Heartbeat";
 import type { JsonValue } from "./serde_json/JsonValue";
 import type { LapCount } from "./LapCount";
+import type { LapVal } from "./LapVal";
 import type { Position } from "./Position";
 import type { RaceControlMessages } from "./RaceControlMessages";
 import type { SessionInfo } from "./SessionInfo";
@@ -22,4 +23,13 @@ export type State = { Heartbeat: Heartbeat | null, ExtrapolatedClock: Extrapolat
  * held-over snapshot from a live stream. Rides full snapshots only;
  * per-topic deltas never carry it (egress stays delta-sized).
  */
-LastFeedEventMs: number | null, };
+LastFeedEventMs: number | null,
+/**
+ * Per-lap lap times, accumulated by ingest: racing number -> lap number
+ * (stringified) -> that lap's `LastLapTime`. The feed only ever carries the
+ * *latest* lap, so this is the only record of the race's lap-by-lap times.
+ * It is built live from the stream and resets with the session (no
+ * persistence — core belief 6); a mid-session reconnect rebuilds from the
+ * snapshot's latest lap onward.
+ */
+LapHistory: { [key in string]?: { [key in string]?: LapVal } }, };
