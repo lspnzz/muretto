@@ -58,8 +58,8 @@ function shortDriverName(name: string): string {
   return name.replace(/\s+/g, "").slice(0, 3).toUpperCase();
 }
 
-/** Stints in stint-number order (exported for the driver tab's stint line). */
-export function orderedStints(stints: { [key: string]: Stint | undefined } | undefined): Stint[] {
+/** Stints in stint-number order. */
+function orderedStints(stints: { [key: string]: Stint | undefined } | undefined): Stint[] {
   if (!stints) return [];
   return Object.keys(stints)
     .sort((a, b) => Number(a) - Number(b))

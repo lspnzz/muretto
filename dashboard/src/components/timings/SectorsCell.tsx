@@ -1,8 +1,7 @@
 import type { Sector, Segment } from "@/types";
 
 // Mini-sector segment status codes (docs/references/strategy-screens.md).
-// Exported: the driver tab renders the same semantics at detail size.
-export function segmentClass(status: number): string {
+function segmentClass(status: number): string {
   switch (status) {
     case 2049:
       return "bg-emerald-500"; // personal best
@@ -57,7 +56,7 @@ export function SectorsCell({
 }
 
 /** Sector-value colour per the timing-page fastest/better/slower convention. */
-export function sectorValueClass(sector: Sector): string {
+function sectorValueClass(sector: Sector): string {
   const hasValue = Boolean(sector.Value || sector.PreviousValue);
 
   return sector.OverallFastest
@@ -69,7 +68,7 @@ export function sectorValueClass(sector: Sector): string {
         : "text-zinc-500";
 }
 
-export function segmentList(segments: { [key: string]: Segment | undefined }): Segment[] {
+function segmentList(segments: { [key: string]: Segment | undefined }): Segment[] {
   return Object.keys(segments)
     .sort((a, b) => Number(a) - Number(b))
     .flatMap((key) => (segments[key] ? [segments[key]] : []));
