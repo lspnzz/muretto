@@ -10,6 +10,39 @@ import { tyreHex } from "@/lib/tyre";
 import { timingGapDisplay } from "@/lib/timingGaps";
 import type { Stint, TimingDataDriver } from "@/types";
 
+/**
+ * Compound-coloured tyre ring with a glyph in the middle (lap count in the
+ * timing tower, compound letter in the stint popup). The shared primitive so
+ * the two rings can't drift.
+ */
+export function TyreRing({
+  compound,
+  label,
+  className = "h-7 w-7 shrink-0",
+}: {
+  compound: string;
+  label: string | number;
+  className?: string;
+}) {
+  const colour = tyreHex(compound);
+  return (
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
+      <circle cx={16} cy={16} r={12} fill="none" stroke={colour} strokeWidth={4.5} />
+      <text
+        x={16}
+        y={17}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={11}
+        fontWeight={700}
+        fill={colour}
+      >
+        {label}
+      </text>
+    </svg>
+  );
+}
+
 /** Compound-coloured tyre ring with current stint age inside. */
 export function TyreCell({ stints }: { stints: Stint[] }) {
   const current = stints.at(-1);
@@ -18,20 +51,7 @@ export function TyreCell({ stints }: { stints: Stint[] }) {
 
   return (
     <div className="justify-self-start">
-      <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0" aria-hidden>
-        <circle cx={16} cy={16} r={12} fill="none" stroke={tyreHex(compound)} strokeWidth={4.5} />
-        <text
-          x={16}
-          y={17}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={11}
-          fontWeight={700}
-          fill={tyreHex(compound)}
-        >
-          {laps}
-        </text>
-      </svg>
+      <TyreRing compound={compound} label={laps} />
     </div>
   );
 }

@@ -2,7 +2,9 @@
 // one place so components stay tidy.
 
 import { bestSectorPosition, bestSectorValue } from "@/lib/ragged";
-import type { Driver, State, Stint, TimingDataDriver } from "@/types";
+import type { Driver, LapVal, State, Stint, TimingDataDriver } from "@/types";
+
+export type DriverLap = { lap: number; val: LapVal };
 
 type DriverRow = {
   racingNumber: string;
@@ -35,6 +37,11 @@ export function displayName(driver: Driver | undefined, racingNumber: string): s
     driver.Tla ||
     racingNumber
   );
+}
+
+/** Three-letter timing-tower label: the driver's surname squashed to 3 caps. */
+export function shortDriverName(name: string): string {
+  return name.replace(/\s+/g, "").slice(0, 3).toUpperCase();
 }
 
 /** Drivers ordered by current timing position (falling back to grid line). */
@@ -72,6 +79,20 @@ export function stintsForDriver(state: State, racingNumber: string): Stint[] {
 /** Best-effort stop count derived from stint count; the feed does not expose it directly. */
 export function pitCount(state: State, racingNumber: string): number {
   return Math.max(0, stintsForDriver(state, racingNumber).length - 1);
+}
+
+/** A driver's accumulated lap times (lib/stints maps them to stints), oldest first. */
+export function driverLaps(state: State, racingNumber: string): DriverLap[] {
+  const laps = state.LapHistory?.[racingNumber];
+  if (!laps) return [];
+  return Object.keys(laps)
+    .map(Number)
+    .filter((lap) => Number.isFinite(lap))
+    .sort((a, b) => a - b)
+    .flatMap((lap) => {
+      const val = laps[String(lap)];
+      return val ? [{ lap, val }] : [];
+    });
 }
 
 /** Session-best timing-sector holders, coloured by their team/car colour. */

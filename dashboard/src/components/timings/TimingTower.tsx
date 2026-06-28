@@ -6,6 +6,7 @@ import { remainingClock } from "@/lib/clock";
 import { trackStatusStyle } from "@/lib/trackStatus";
 import { useDataStore } from "@/stores/useDataStore";
 import type { TimingDataDriver } from "@/types";
+import { DriverStintModal } from "./DriverStintModal";
 import { TIMING_GRID, TimingRow } from "./TimingRow";
 
 const HEADERS = ["Driver", "Tyre", "Pit", "Gap", "Last", "Sectors", "Best"];
@@ -13,6 +14,7 @@ const HEADERS = ["Driver", "Tyre", "Pit", "Gap", "Last", "Sectors", "Best"];
 export function TimingTower() {
   const state = useDataStore((s) => s.state);
   const drivers = state.DriverList ?? {};
+  const [selected, setSelected] = useState<string | null>(null);
   const lines = Object.values(state.TimingData?.Lines ?? {}).filter(
     (line): line is TimingDataDriver => Boolean(line),
   );
@@ -57,11 +59,19 @@ export function TimingTower() {
                 timing={timing}
                 driver={drivers[timing.RacingNumber]}
                 position={index + 1}
+                onSelect={setSelected}
               />
             ))}
           </div>
         </div>
       </div>
+      {selected && (
+        <DriverStintModal
+          key={selected}
+          racingNumber={selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </section>
   );
 }
