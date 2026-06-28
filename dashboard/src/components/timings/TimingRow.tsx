@@ -6,11 +6,11 @@ import { displayName } from "@/lib/selectors";
 import { useDataStore } from "@/stores/useDataStore";
 import type { Driver, Stint, TimingDataDriver } from "@/types";
 import { DriverTag } from "./DriverTag";
-import { BestLapCell, GapCell, LastLapCell, PitCell, PitStatusCell, TyreCell } from "./cells";
+import { BestLapCell, GapCell, LastLapCell, PitCell, TyreCell } from "./cells";
 import { SectorsCell } from "./SectorsCell";
 
 export const TIMING_GRID =
-  "5.25rem 3.25rem 2.5rem 5rem 5.25rem minmax(min-content, 1fr) 6.75rem 4.75rem";
+  "5.25rem 3.25rem 2.5rem 5rem 5.25rem minmax(min-content, 1fr) 7.5rem";
 
 export function TimingRow({
   racingNumber,
@@ -44,12 +44,11 @@ export function TimingRow({
         teamColour={driver?.TeamColour}
       />
       <TyreCell stints={stints} />
-      <PitCell stints={stints} />
+      <PitCell stints={stints} timing={timing} />
       <GapCell timing={timing} sessionPart={state.TimingData?.SessionPart} />
       <LastLapCell timing={timing} />
       <SectorsCell sectors={timing.Sectors} />
       <BestLapCell timing={timing} hasFastest={hasFastest} fastestTyre={fastestTyre} />
-      <PitStatusCell timing={timing} />
     </div>
   );
 }

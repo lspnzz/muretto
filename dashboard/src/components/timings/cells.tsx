@@ -36,11 +36,21 @@ export function TyreCell({ stints }: { stints: Stint[] }) {
   );
 }
 
-/** Stop count derived from stint count. */
-export function PitCell({ stints }: { stints: Stint[] }) {
+/**
+ * Stop count derived from stint count — but while the car is in the pit lane,
+ * the count is replaced by a transient IN/OUT indicator (the old standalone
+ * pit-status column folded in here).
+ */
+export function PitCell({ stints, timing }: { stints: Stint[]; timing: TimingDataDriver }) {
+  const pitState = timing.InPit ? "IN" : timing.PitOut ? "OUT" : null;
+
   return (
     <div className="justify-self-start font-mono text-base leading-none font-medium tabular-nums">
-      {Math.max(0, stints.length - 1)}
+      {pitState ? (
+        <span className="text-xs font-semibold text-cyan-400">{pitState}</span>
+      ) : (
+        Math.max(0, stints.length - 1)
+      )}
     </div>
   );
 }
@@ -75,17 +85,6 @@ export function GapCell({
   );
 }
 
-/** In/out pit state sits in the unlabeled trailing status column when present. */
-export function PitStatusCell({ timing }: { timing: TimingDataDriver }) {
-  const pitWord = timing.InPit ? "IN PIT" : timing.PitOut ? "PIT OUT" : "";
-
-  return (
-    <div className="justify-self-end font-mono text-xs leading-none font-semibold text-cyan-400">
-      {pitWord && <span>{pitWord}</span>}
-    </div>
-  );
-}
-
 /** Last lap time, with fastest-lap colouring. */
 export function LastLapCell({ timing }: { timing: TimingDataDriver }) {
   const last = timing.LastLapTime;
@@ -110,7 +109,10 @@ export function LastLapCell({ timing }: { timing: TimingDataDriver }) {
  * Personal best lap time (violet when it is the session best), followed by the
  * compound letter stacked over the tyre age for the lap it was set on. The
  * stacked badge is sized to the lap time's line height, so the cell stays one
- * line tall. Left-aligned in a fixed-width column so the lap times line up.
+ * line tall. This is the trailing column: a light left rule separates it from
+ * the rest of the table. The cell fills its track (so the rule sits on the
+ * column boundary) and stretches the full row height (so the rule reads as one
+ * continuous line); content stays left-aligned so the lap times line up.
  */
 export function BestLapCell({
   timing,
@@ -125,7 +127,7 @@ export function BestLapCell({
 
   return (
     <div
-      className="flex items-center justify-self-start gap-1.5"
+      className="flex items-center gap-1.5 self-stretch -my-1.5 border-l border-zinc-800 py-1.5 pl-3"
       title={
         fastestTyre
           ? `Fastest lap on ${fastestTyre.compound} (${fastestTyre.age} lap${

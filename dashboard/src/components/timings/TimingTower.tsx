@@ -8,7 +8,7 @@ import { useDataStore } from "@/stores/useDataStore";
 import type { TimingDataDriver } from "@/types";
 import { TIMING_GRID, TimingRow } from "./TimingRow";
 
-const HEADERS = ["Driver", "Tyre", "Pit", "Gap", "Last", "Sectors", "Best", ""];
+const HEADERS = ["Driver", "Tyre", "Pit", "Gap", "Last", "Sectors", "Best"];
 
 export function TimingTower() {
   const state = useDataStore((s) => s.state);
@@ -35,8 +35,15 @@ export function TimingTower() {
             className="sticky top-0 z-10 grid items-center gap-x-2.5 border-b border-zinc-800 bg-black px-3 py-2 text-[11px] uppercase tracking-wide text-zinc-500"
             style={{ gridTemplateColumns: TIMING_GRID }}
           >
-            {HEADERS.map((header, index) => (
-              <p key={header || `empty-${index}`} aria-hidden={!header}>
+            {HEADERS.map((header) => (
+              <p
+                key={header}
+                className={
+                  header === "Best"
+                    ? "flex items-center self-stretch -my-2 border-l border-zinc-800 py-2 pl-3"
+                    : undefined
+                }
+              >
                 {header}
               </p>
             ))}
