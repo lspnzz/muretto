@@ -44,8 +44,9 @@ F1_DEV_URL=ws://replay:8000/ws docker compose --profile dev up --build
   sector 8 → clear → safety car → VSC → VSC ending → red flag → green. The
   track map paints the marshal sectors / outline and shows a status badge;
   at the default frame rate each state flashes by in well under a second —
-  set `REPLAY_FRAME_DELAY_MS=600` (or more) on the replay process to watch
-  them.
+  set `REPLAY_FRAME_DELAY_MS=600` (or more, but below 90000 — realtime's
+  idle watchdog presumes the feed dead after 90s of silence and the
+  reconnect restarts the replay) on the replay process to watch them.
 - Broadcast sync (settings menu): the fixture's late `ExtrapolatedClock`
   frame arms “time left”, and its `Aborted → Started` pair arms “race start”
   each loop.

@@ -2,9 +2,11 @@
 //! [`State`], and publish each delta to SSE subscribers.
 //!
 //! `*.z` topics are decompressed and re-keyed here so nothing downstream ever
-//! sees a compressed or suffixed topic. A supervisor reconnects on disconnect
-//! and on session change (a new `SessionInfo.Name`), resetting state so a fresh
-//! session doesn't merge onto a stale one.
+//! sees a compressed or suffixed topic. A supervisor reconnects on disconnect,
+//! on session change (a new `SessionInfo.Name`), and when the socket goes
+//! frame-silent (a half-open connection never errors — it just stops
+//! delivering), resetting state so a fresh session doesn't merge onto a
+//! stale one.
 
 pub mod decompress;
 mod driver_list;
@@ -13,7 +15,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Result;
-use futures::StreamExt;
+use futures::{Stream, StreamExt};
 use indexmap::IndexMap;
 use serde_json::{Map, Value, json};
 use tokio::sync::{RwLock, broadcast};
@@ -25,8 +27,18 @@ use muretto_merge::Merge;
 use crate::config;
 use crate::model::State;
 use crate::server::Broadcast;
+use crate::signalr::UpdateArgs;
 
 const RECONNECT_DELAY: Duration = Duration::from_secs(2);
+
+/// How long the socket may deliver *no frames at all* before it is presumed
+/// dead. A healthy Core connection is never this quiet — keep-alives arrive
+/// every ~15s even between sessions — but a half-open TCP connection delivers
+/// nothing, never errors, and never closes (2026-07-04: six silent days that
+/// blacked out a sprint weekend), so silence is the only available signal.
+/// A false trigger costs one ~2s reconnect; a missed dead socket costs every
+/// session until someone redeploys.
+const FEED_IDLE_TIMEOUT: Duration = Duration::from_secs(90);
 
 /// Run the ingest loop until cancelled, reconnecting on error/session change.
 pub async fn run_supervised(
@@ -55,7 +67,8 @@ pub async fn run_supervised(
 }
 
 /// One connect → subscribe → listen cycle. Returns `Ok(())` on a clean end
-/// (socket close or detected session change), `Err` on connection failure.
+/// (socket close or detected session change), `Err` on connection failure,
+/// a hung connect/subscribe (capped in `signalr`), or a frame-silent socket.
 async fn ingest_session(
     state: &Arc<RwLock<State>>,
     tx: &broadcast::Sender<Broadcast>,
@@ -70,7 +83,7 @@ async fn ingest_session(
 
     let updates = client.listen();
     tokio::pin!(updates);
-    while let Some(batch) = updates.next().await {
+    while let Some(batch) = next_batch(&mut updates, FEED_IDLE_TIMEOUT).await? {
         for update in batch {
             let topic = decompress::canonical_topic(&update.topic).to_string();
             let data = match decode(&update.topic, update.data) {
@@ -94,6 +107,23 @@ async fn ingest_session(
         }
     }
     Ok(())
+}
+
+/// Next frame batch, or `None` when the socket closes. Errs when the socket
+/// yields nothing for `idle` — `listen()` surfaces keep-alives as empty
+/// batches, so a healthy connection always beats the deadline and only a
+/// dead one runs it out.
+async fn next_batch<S>(updates: &mut S, idle: Duration) -> Result<Option<Vec<UpdateArgs>>>
+where
+    S: Stream<Item = Vec<UpdateArgs>> + Unpin,
+{
+    match tokio::time::timeout(idle, updates.next()).await {
+        Ok(batch) => Ok(batch),
+        Err(_) => anyhow::bail!(
+            "no frames for {}s; presuming the socket dead",
+            idle.as_secs()
+        ),
+    }
 }
 
 async fn is_new_session_info(state: &Arc<RwLock<State>>, data: &Value) -> bool {
@@ -445,6 +475,29 @@ mod tests {
         let guard = state.read().await;
         assert!(guard.last_feed_event_ms.is_none());
         assert!(guard.heartbeat.is_some()); // the topic itself still merges
+    }
+
+    #[tokio::test]
+    async fn idle_watchdog_errs_when_the_socket_goes_silent() {
+        let mut updates = futures::stream::pending::<Vec<UpdateArgs>>();
+
+        let result = next_batch(&mut updates, Duration::from_millis(20)).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn next_batch_passes_frames_and_stream_end_through() {
+        let mut updates = futures::stream::iter([Vec::<UpdateArgs>::new()]);
+
+        assert!(matches!(
+            next_batch(&mut updates, Duration::from_secs(5)).await,
+            Ok(Some(_))
+        ));
+        assert!(matches!(
+            next_batch(&mut updates, Duration::from_secs(5)).await,
+            Ok(None)
+        ));
     }
 
     #[tokio::test]
