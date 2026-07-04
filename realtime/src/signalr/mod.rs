@@ -9,6 +9,8 @@
 //! (the local replay simulator) and skips negotiation. The replay simulator
 //! still speaks the legacy SignalR shape because existing recordings use it.
 
+use std::time::Duration;
+
 use anyhow::{Context, Result, bail};
 use futures::{SinkExt, Stream, StreamExt};
 use reqwest::Url;
@@ -21,6 +23,17 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 use tracing::{debug, warn};
 
 const RECORD_SEPARATOR: char = '\u{001e}';
+
+/// Cap on the whole connect flow (negotiate → WebSocket → handshake). Each
+/// step awaits a network reply that can otherwise stall forever — negotiate
+/// has no request timeout of its own.
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Cap on `Subscribe`. Deliberately wider than [`CONNECT_TIMEOUT`]: the
+/// completion frame carries the full initial snapshot for every topic, which
+/// a slow link legitimately takes a while to deliver — but a completion that
+/// never arrives must not hang the caller forever.
+const SUBSCRIBE_TIMEOUT: Duration = Duration::from_secs(60);
 
 type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
@@ -80,8 +93,17 @@ struct CoreInvoke {
     arguments: Vec<Value>,
 }
 
-/// Connect to the feed (or the dev replay endpoint) and return a ready client.
+/// Connect to the feed (or the dev replay endpoint) and return a ready
+/// client. The whole flow is capped by [`CONNECT_TIMEOUT`] so a stalled
+/// negotiate or handshake can't hang callers — ingest and the simulator's
+/// recorder both connect through here.
 pub async fn connect(base_url: &str, hub: &str, dev_url: Option<&str>) -> Result<SignalrClient> {
+    tokio::time::timeout(CONNECT_TIMEOUT, connect_inner(base_url, hub, dev_url))
+        .await
+        .context("connect timed out")?
+}
+
+async fn connect_inner(base_url: &str, hub: &str, dev_url: Option<&str>) -> Result<SignalrClient> {
     if let Some(dev) = dev_url {
         debug!(dev, "connecting to dev replay endpoint");
         let request = dev.into_client_request()?;
@@ -198,27 +220,38 @@ fn framed_json<T: Serialize>(value: &T) -> Result<String> {
 impl SignalrClient {
     /// Invoke `Subscribe` with the topic list and return the initial snapshot
     /// (the `R` field of the response), a `{ "<Topic>": <data> }` object.
+    /// Capped by [`SUBSCRIBE_TIMEOUT`] — a hub that never completes the
+    /// invocation must fail the cycle, not hang it.
     pub async fn subscribe(&mut self, topics: &[&str]) -> Result<Value> {
-        match self.protocol {
-            Protocol::Core => self.subscribe_core(topics).await,
-            Protocol::Legacy => self.subscribe_legacy(topics).await,
-        }
+        let subscribe = async {
+            match self.protocol {
+                Protocol::Core => self.subscribe_core(topics).await,
+                Protocol::Legacy => self.subscribe_legacy(topics).await,
+            }
+        };
+        tokio::time::timeout(SUBSCRIBE_TIMEOUT, subscribe)
+            .await
+            .context("subscribe timed out")?
     }
 
-    /// Stream parsed `feed` updates until the socket closes. Non-feed frames
-    /// (keep-alives, acks) and parse failures are skipped, not fatal.
+    /// Stream received frames until the socket closes or errors, parsed as
+    /// `feed` updates. Non-feed frames (keep-alives, acks) and parse failures
+    /// yield an **empty batch** rather than being skipped: every yielded item
+    /// proves the socket is alive, which is what lets ingest's idle watchdog
+    /// read prolonged silence as a dead connection. A read *error* is the
+    /// opposite of liveness, so it ends the stream instead of feeding it.
     pub fn listen(self) -> impl Stream<Item = Vec<UpdateArgs>> {
-        self.stream.filter_map(|message| async move {
-            let text = match message {
-                Ok(Message::Text(text)) => text,
-                Ok(_) => return None,
-                Err(e) => {
-                    warn!(?e, "ws read error");
-                    return None;
+        self.stream
+            .take_while(|message| {
+                if let Err(e) = message {
+                    warn!(?e, "ws read error; ending the session");
                 }
-            };
-            parse_feed(&text)
-        })
+                futures::future::ready(message.is_ok())
+            })
+            .map(|message| match message {
+                Ok(Message::Text(text)) => parse_feed(&text).unwrap_or_default(),
+                _ => Vec::new(),
+            })
     }
 
     /// Stream raw text frames unparsed — used by the simulator to record a
@@ -261,11 +294,8 @@ impl SignalrClient {
                     target = ?value.get("target").and_then(|value| value.as_str()),
                     "received signalr core subscribe frame"
                 );
-                if value.get("type").and_then(Value::as_i64) == Some(3)
-                    && value.get("invocationId").and_then(Value::as_str) == Some("1")
-                    && let Some(initial) = value.get("result")
-                {
-                    return Ok(initial.clone());
+                if let Some(completion) = subscribe_completion(&value) {
+                    return completion;
                 }
             }
         }
@@ -298,6 +328,28 @@ impl SignalrClient {
         }
         bail!("connection closed before subscribe response")
     }
+}
+
+/// Interpret one Core frame as the `Subscribe` completion. `Some(Ok)` carries
+/// the initial snapshot; `Some(Err)` means the hub failed the invocation —
+/// rejected it, or completed with a missing/`null` result. Either way no
+/// usable snapshot is ever coming, so the connect cycle must abort rather
+/// than wait forever. `None` is an unrelated frame (keep-alive, feed
+/// message, other invocation).
+fn subscribe_completion(value: &Value) -> Option<Result<Value>> {
+    if value.get("type").and_then(Value::as_i64) != Some(3)
+        || value.get("invocationId").and_then(Value::as_str) != Some("1")
+    {
+        return None;
+    }
+    if let Some(initial) = value.get("result").filter(|result| !result.is_null()) {
+        return Some(Ok(initial.clone()));
+    }
+    let error = value
+        .get("error")
+        .and_then(Value::as_str)
+        .unwrap_or("completion carried no result");
+    Some(Err(anyhow::anyhow!("subscribe rejected: {error}")))
 }
 
 /// Parse a SignalR message frame into feed updates, if it carries any.
@@ -419,6 +471,45 @@ mod tests {
         assert_eq!(value["invocationId"], "1");
         assert!(value.get("invocation_id").is_none());
         assert_eq!(value["target"], "Subscribe");
+    }
+
+    #[test]
+    fn subscribe_completion_extracts_the_snapshot() {
+        let frame = json!({
+            "type": 3,
+            "invocationId": "1",
+            "result": { "TrackStatus": { "Status": "1" } }
+        });
+
+        let initial = subscribe_completion(&frame).unwrap().unwrap();
+
+        assert_eq!(initial["TrackStatus"]["Status"], "1");
+    }
+
+    #[test]
+    fn subscribe_completion_fails_on_an_error_completion() {
+        let frame = json!({ "type": 3, "invocationId": "1", "error": "Subscribe failed" });
+
+        let result = subscribe_completion(&frame).unwrap();
+
+        assert!(result.unwrap_err().to_string().contains("Subscribe failed"));
+    }
+
+    #[test]
+    fn subscribe_completion_fails_on_a_null_result() {
+        let frame = json!({ "type": 3, "invocationId": "1", "result": null });
+
+        assert!(subscribe_completion(&frame).unwrap().is_err());
+    }
+
+    #[test]
+    fn subscribe_completion_ignores_unrelated_frames() {
+        let other_invocation = json!({ "type": 3, "invocationId": "2", "result": {} });
+        let feed = json!({ "type": 1, "target": "feed", "arguments": [] });
+
+        assert!(subscribe_completion(&json!({ "type": 6 })).is_none());
+        assert!(subscribe_completion(&other_invocation).is_none());
+        assert!(subscribe_completion(&feed).is_none());
     }
 
     #[test]

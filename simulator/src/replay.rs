@@ -19,7 +19,10 @@ use tracing::{info, warn};
 /// Delay between feed frames during replay (~10 Hz, approximating live
 /// cadence). `REPLAY_FRAME_DELAY_MS` slows the loop down so transient states
 /// — sector yellows, safety cars, pit stops — sit on screen long enough to
-/// eyeball in the dashboard.
+/// eyeball in the dashboard. Keep it well below 90 000: the replay sends no
+/// keep-alives between frames, so at realtime's `FEED_IDLE_TIMEOUT` (90s) its
+/// watchdog presumes the socket dead and the reconnect restarts the replay
+/// from frame 0.
 fn frame_delay() -> Duration {
     let ms = std::env::var("REPLAY_FRAME_DELAY_MS")
         .ok()

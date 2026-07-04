@@ -35,7 +35,38 @@ a set `F1_DEV_URL` short-circuits straight to that WebSocket with
    the **initial snapshot**: an object keyed by topic name.
 5. Read feed frames:
    `{"type":1,"target":"feed","arguments":[<topic>,<data>,<timestamp>]}`.
-   Keep-alives are `{"type":6}`; non-feed frames are skipped, not errors.
+   Keep-alives are `{"type":6}`; non-feed frames parse to an **empty batch**
+   — they carry no data but still count as proof the socket is alive.
+
+### Connection failure modes
+
+The 2026 British GP sprint blackout: the WebSocket half-died on 2026-06-28
+with no error and no close frame, and ingest sat blocked on a read for six
+frame-silent days. A half-open socket's only signal is silence, so silence
+is treated as fatal:
+
+- `CONNECT_TIMEOUT` and `SUBSCRIBE_TIMEOUT` (`realtime/src/signalr/mod.rs`)
+  cap the connect flow and the Subscribe round-trip **inside the client**, so
+  every caller is covered — ingest and the simulator's recorder alike.
+  Negotiate has no request timeout of its own, and the Subscribe completion
+  may simply never arrive. The Subscribe cap is wider because its completion
+  carries the full initial snapshot.
+- A Subscribe completion without a usable `result` (missing or `null`, with
+  or without an `error` field) aborts the cycle (`subscribe_completion` in
+  `realtime/src/signalr/mod.rs`); skipping it would mean waiting forever for
+  a snapshot that is never coming.
+- `FEED_IDLE_TIMEOUT` (`realtime/src/ingest/mod.rs`) bounds frame-silence.
+  A healthy Core connection delivers keep-alives every ~15s even between
+  sessions, so a socket with no frames for the whole window is presumed
+  dead; the supervisor reconnects ~2s later. A read *error* ends the session
+  immediately — an erroring socket is not a live one, so it must never feed
+  the watchdog. Overt closes always reconnected fine; only silent death
+  needed the watchdog.
+
+Known gap: feed frames that arrive interleaved with the Subscribe completion
+(before it, or after it in the same record-separated message) are dropped;
+state heals on each topic's next delta. Pre-existing, deliberate — buffering
+them through `subscribe` isn't worth the surgery on this path yet.
 
 ## Replay flow (legacy shape)
 
@@ -69,6 +100,26 @@ not duplicate it here. Notes that the list can't express:
 - `State` also has a `championship_prediction` field, but
   `ChampionshipPrediction` is **not currently subscribed** — the field stays
   empty until someone adds the topic.
+
+## Session kinds
+
+`SessionInfo.Type` stays within `Practice | Qualifying | Race`; sprint
+weekends add new **Names**, not new Types (verified live and against the
+season archive index during the 2026-07-04 British GP sprint weekend):
+
+| `Name` | `Type` |
+| ------ | ------ |
+| `Practice N` | `Practice` |
+| `Sprint Qualifying` | `Qualifying` |
+| `Sprint Shootout` (2023–24 archive naming; older recordings only) | `Qualifying` |
+| `Sprint` | `Race` |
+| `Qualifying` | `Qualifying` |
+| `Race` | `Race` |
+
+Anything gating on `Type` (e.g. the dashboard's strategy ring) treats a
+sprint as a race automatically. `Name` feeds display labels and the
+session-change heuristic only, so no data path needs a sprint special case —
+which is why the sole `Race`-shaped fixture is representative coverage.
 
 ## Compressed topics — the classic gotcha
 
