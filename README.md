@@ -8,6 +8,11 @@ two can't drift; ops is a single always-on container, not Kubernetes.
 > Unofficial and not associated with Formula 1. F1, FORMULA 1 and related marks are trade
 > marks of Formula One Licensing B.V.
 
+![The Pit wall tab replaying the bundled sample session: a five-driver timing tower (HAM, LEC, VER, NOR, ALO), the track map and circle of doom, tyre stints, and race control, as NOR pits and the session runs through a yellow flag, double yellow, safety car, VSC and red flag back to green](docs/assets/replay.gif)
+
+*The dashboard replaying the synthetic fixture `simulator/fixtures/sample.jsonl` offline, no
+live race needed. Re-record it with `./scripts/record-demo.sh`.*
+
 ## Architecture
 
 ```
@@ -66,6 +71,9 @@ curl -N http://127.0.0.1:4000/api/realtime                          # see the SS
 
 # Or the whole thing in Docker (offline):
 F1_DEV_URL=ws://replay:8000/ws docker compose --profile dev up
+
+# Re-record the demo GIF above (boots that stack; needs Node, ffmpeg, internet):
+./scripts/record-demo.sh
 ```
 
 Against the live feed, drop `F1_DEV_URL` (only works during a session weekend).

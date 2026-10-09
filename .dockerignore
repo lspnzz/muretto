@@ -11,3 +11,4 @@ dashboard/out
 compose.env
 .github
 *.md
+docs

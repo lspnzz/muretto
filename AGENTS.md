@@ -21,7 +21,7 @@ types **generated from the Rust model**. No database; state lives in memory.
 | `simulator/` | record/replay tool — develop with no live race |
 | `dashboard/` | Next.js UI; `src/types/` is **generated, never edited** |
 | `docs/` | knowledge base — [index](docs/README.md) |
-| `scripts/` | `smoke.sh` (offline e2e), `checks.sh` (hygiene gates) |
+| `scripts/` | `smoke.sh` (offline e2e), `checks.sh` (hygiene gates), `record-demo.sh` (README GIF) |
 | `.github/workflows/` | CI, docs gates, weekly link maintenance |
 
 ## Commands
@@ -78,5 +78,6 @@ the reference docs.
 - **Model / `State`** → `cargo test --workspace`, commit the regenerated types.
 - **Ingest / signalr / server** → `./scripts/smoke.sh`.
 - **UI** → run the full stack (run-stack skill); the fixture renders a
-  five-driver race (HAM, LEC, VER, NOR, ALO) across all three tabs.
+  five-driver race (HAM, LEC, VER, NOR, ALO) across both tabs. If the Pit
+  wall looks notably different, re-record the README GIF (`record-demo.sh`).
 - **Docs** → `./scripts/checks.sh`; CI also link-checks.
