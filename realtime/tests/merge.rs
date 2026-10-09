@@ -201,6 +201,10 @@ fn replay_fixture_initial_then_partial_sequence() {
     let drivers = s.driver_list.as_ref().unwrap();
     assert_eq!(drivers["44"].tla, "HAM");
     assert_eq!(drivers["16"].team_name, "Ferrari");
+    // 2026 lineup: HAM at Ferrari, champion NOR on #1, VER on #3.
+    assert_eq!(drivers["44"].team_name, "Ferrari");
+    assert_eq!(drivers["1"].tla, "NOR");
+    assert_eq!(drivers["3"].tla, "VER");
 
     let timing = s.timing_data.as_ref().unwrap();
     assert_eq!(timing.lines["44"].position, "1");
@@ -209,9 +213,9 @@ fn replay_fixture_initial_then_partial_sequence() {
     assert_eq!(timing.lines["44"].sectors["0"].segments["3"].status, 2049);
     assert_eq!(timing.lines["44"].sectors["0"].value, "28.143");
     // NOR's pit sequence: in, new stint, out.
-    assert!(timing.lines["4"].pit_out);
-    assert!(!timing.lines["4"].in_pit);
-    let stints = &s.timing_app_data.as_ref().unwrap().lines["4"].stints;
+    assert!(timing.lines["1"].pit_out);
+    assert!(!timing.lines["1"].in_pit);
+    let stints = &s.timing_app_data.as_ref().unwrap().lines["1"].stints;
     assert_eq!(stints["1"].compound.as_deref(), Some("HARD"));
 
     assert_eq!(s.session_status.as_ref().unwrap().status, "Started");

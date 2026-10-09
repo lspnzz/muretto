@@ -30,6 +30,16 @@ F1_DEV_URL=ws://replay:8000/ws docker compose --profile dev up --build
 # realtime on host :4000, dashboard on host :3000
 ```
 
+## Re-record the README GIF
+
+```bash
+./scripts/record-demo.sh   # -> docs/assets/replay.gif
+```
+
+Boots the Docker variant itself (replay at 500 ms/frame), captures exactly one
+fixture loop of the Pit wall with Playwright, and encodes it with ffmpeg. Needs
+Node, ffmpeg and internet (the track map's outline comes from MultiViewer).
+
 ## What healthy looks like
 
 - `curl http://127.0.0.1:4000/api/health` → `{"ok":true}`
